@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Kelas</title>
+    <link rel="stylesheet" href="/static/style.css"> <!-- Jika ada CSS -->
+</head>
+<body>
+    <h1>Store Kelas</h1>
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    <form action="/store/kelas" method="post">
+        <label for="nama_kelas">Nama Kelas:</label><br>
+        <input type="text" id="nama_kelas" name="nama_kelas" required><br><br>
+
+        <label for="wali_kelas_id">Wali Kelas ID (Guru):</label><br>
+        <input type="number" id="wali_kelas_id" name="wali_kelas_id" required><br><br>
+
+        <input type="submit" value="Simpan Kelas">
+    </form>
+    <p><a href="/register">Register User</a> | <a href="/store/jadwal">Store Jadwal</a></p>
+</body>
+</html>

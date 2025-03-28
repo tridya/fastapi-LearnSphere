@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register User</title>
+    <link rel="stylesheet" href="/static/style.css"> <!-- Jika ada CSS -->
+</head>
+<body>
+    <h1>Register New User</h1>
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    <form action="/register" method="post">
+        <label for="nama">Nama:</label><br>
+        <input type="text" id="nama" name="nama" required><br><br>
+
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username" required><br><br>
+
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <label for="role">Role:</label><br>
+        <select id="role" name="role" required>
+            <option value="guru">Guru</option>
+            <option value="orang_tua">Orang Tua</option>
+        </select><br><br>
+
+        <input type="submit" value="Register">
+    </form>
+    <p><a href="/store/kelas">Store Kelas</a> | <a href="/store/jadwal">Store Jadwal</a></p>
+</body>
+</html>

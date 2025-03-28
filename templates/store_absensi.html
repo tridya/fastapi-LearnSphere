@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Store Absensi</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>Tambah Absensi</h1>
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    <form method="POST" action="/store/absensi">
+        <label for="siswa_id">ID Siswa:</label><br>
+        <input type="number" id="siswa_id" name="siswa_id" required><br>
+        <label for="tanggal">Tanggal:</label><br>
+        <input type="date" id="tanggal" name="tanggal" required><br>
+        <label for="status">Status:</label><br>
+        <select id="status" name="status" required>
+            <option value="Hadir">Hadir</option>
+            <option value="Izin">Izin</option>
+            <option value="Sakit">Sakit</option>
+            <option value="Alpa">Alpa</option>
+        </select><br>
+        <button type="submit">Simpan Absensi</button>
+    </form>
+</body>
+</html>
