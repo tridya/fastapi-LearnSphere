@@ -1,4 +1,3 @@
-# app/routes/auth.py
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from app.schemas.user import UserCreate, UserInDB, Token
@@ -23,7 +22,7 @@ async def api_register_user(user: UserCreate, db: sqlite3.Connection = Depends(g
         new_user = cursor.fetchone()
         if not new_user:
             raise HTTPException(status_code=500, detail="Failed to retrieve newly created user")
-        return new_user
+        return dict(new_user)  # Konversi ke dict untuk response
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=400, detail="Username already exists")
     except Exception as e:
@@ -36,11 +35,16 @@ async def api_login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: s
     db_user = cursor.fetchone()
     
     if not db_user or not verify_password(form_data.password, db_user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # Buat token
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
-        data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=access_token_expires
+        data={"sub": db_user["username"], "role": db_user["role"]},
+        expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}

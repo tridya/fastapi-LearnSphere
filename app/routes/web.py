@@ -1,11 +1,11 @@
-# app/routes/web.py
 from fastapi import APIRouter, Depends, Form, Request, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.dependencies import get_db_connection, get_templates
-from app.utils.security import hash_password
+from app.utils.security import hash_password, verify_password, create_access_token
 import sqlite3
 import logging
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +13,56 @@ router = APIRouter(tags=["web"])
 
 @router.get("/", response_class=HTMLResponse)
 async def read_root(request: Request, templates: Jinja2Templates = Depends(get_templates)):
-    return templates.TemplateResponse("register.html", {"request": request})
+    logger.info(f"Accessed root with method: {request.method}")
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, message: str = None, templates: Jinja2Templates = Depends(get_templates)):
+    logger.info(f"Accessed login page with method: {request.method}")
+    return templates.TemplateResponse("login.html", {"request": request, "message": message})
+
+@router.post("/login", response_class=HTMLResponse)
+async def login_user(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: sqlite3.Connection = Depends(get_db_connection),
+    templates: Jinja2Templates = Depends(get_templates)
+):
+    logger.info(f"Login attempt for username: {username} with method: {request.method}")
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        db_user = cursor.fetchone()
+
+        if not db_user or not verify_password(password, db_user["password"]):
+            logger.warning(f"Login failed for username: {username}")
+            return templates.TemplateResponse(
+                "login.html",
+                {"request": request, "message": "Invalid username or password"}
+            )
+
+        access_token_expires = timedelta(minutes=30)
+        access_token = create_access_token(
+            data={"sub": db_user["username"], "role": db_user["role"]},
+            expires_delta=access_token_expires
+        )
+
+        response = RedirectResponse(url="/register", status_code=303)
+        response.set_cookie(key="access_token", value=access_token, httponly=True)
+        logger.info(f"User {username} logged in successfully")
+        return response
+
+    except Exception as e:
+        logger.error(f"Error during login: {str(e)}")
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "message": "An error occurred during login"}
+        )
 
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request, message: str = None, templates: Jinja2Templates = Depends(get_templates)):
+    logger.info(f"Accessed register page with method: {request.method}")
     return templates.TemplateResponse("register.html", {"request": request, "message": message})
 
 @router.post("/register", response_class=HTMLResponse)
@@ -29,8 +75,8 @@ async def register_user(
     db: sqlite3.Connection = Depends(get_db_connection),
     templates: Jinja2Templates = Depends(get_templates)
 ):
+    logger.info(f"Register attempt for username: {username} with method: {request.method}")
     try:
-        logger.info(f"Registering user: {username}")
         if role not in ["guru", "orang_tua"]:
             return templates.TemplateResponse(
                 "register.html", {"request": request, "message": "Invalid role. Must be 'guru' or 'orang_tua'"}
@@ -58,6 +104,7 @@ async def register_user(
 
 @router.get("/store/kelas", response_class=HTMLResponse)
 async def store_kelas_page(request: Request, message: str = None, templates: Jinja2Templates = Depends(get_templates)):
+    logger.info(f"Accessed store/kelas with method: {request.method}")
     return templates.TemplateResponse("store_kelas.html", {"request": request, "message": message})
 
 @router.post("/store/kelas", response_class=HTMLResponse)
@@ -68,6 +115,7 @@ async def store_kelas(
     db: sqlite3.Connection = Depends(get_db_connection),
     templates: Jinja2Templates = Depends(get_templates)
 ):
+    logger.info(f"Store kelas attempt with method: {request.method}")
     try:
         cursor = db.cursor()
         cursor.execute("SELECT * FROM users WHERE user_id = ? AND role = 'guru'", (wali_kelas_id,))
@@ -90,8 +138,10 @@ async def store_kelas(
             "store_kelas.html", {"request": request, "message": "Error storing kelas"}
         )
 
+# Rute lainnya (store/mata-pelajaran, store/jadwal) tetap sama, tambahkan logging jika perlu
 @router.get("/store/mata-pelajaran", response_class=HTMLResponse)
 async def store_mata_pelajaran_page(request: Request, message: str = None, templates: Jinja2Templates = Depends(get_templates)):
+    logger.info(f"Accessed store/mata-pelajaran with method: {request.method}")
     return templates.TemplateResponse("store_mata_pelajaran.html", {"request": request, "message": message})
 
 @router.post("/store/mata-pelajaran", response_class=HTMLResponse)
@@ -103,6 +153,7 @@ async def store_mata_pelajaran(
     db: sqlite3.Connection = Depends(get_db_connection),
     templates: Jinja2Templates = Depends(get_templates)
 ):
+    logger.info(f"Store mata-pelajaran attempt with method: {request.method}")
     try:
         cursor = db.cursor()
         cursor.execute(
@@ -125,6 +176,7 @@ async def store_mata_pelajaran(
 
 @router.get("/store/jadwal", response_class=HTMLResponse)
 async def store_jadwal_page(request: Request, message: str = None, templates: Jinja2Templates = Depends(get_templates)):
+    logger.info(f"Accessed store/jadwal with method: {request.method}")
     return templates.TemplateResponse("store_jadwal.html", {"request": request, "message": message})
 
 @router.post("/store/jadwal", response_class=HTMLResponse)
@@ -138,6 +190,7 @@ async def store_jadwal(
     db: sqlite3.Connection = Depends(get_db_connection),
     templates: Jinja2Templates = Depends(get_templates)
 ):
+    logger.info(f"Store jadwal attempt with method: {request.method}")
     try:
         cursor = db.cursor()
         cursor.execute("SELECT * FROM kelas WHERE kelas_id = ?", (kelas_id,))

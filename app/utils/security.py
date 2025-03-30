@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Konfigurasi JWT
-SECRET_KEY = "your-secret-key"  # Ganti dengan kunci rahasia yang aman
+SECRET_KEY = "Daffa190105"  # Ganti dengan kunci rahasia yang aman
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

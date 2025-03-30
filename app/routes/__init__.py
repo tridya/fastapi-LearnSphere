@@ -1,4 +1,4 @@
-# app/routes/__init__.py
+# fastapi-LearnSphere/app/routes/__init__.py
 from .auth import router as auth_router
 from .kelas import router as kelas_router
 from .siswa import router as siswa_router
