@@ -17,4 +17,4 @@ class PerilakuResponse(BaseModel):
     tanggal: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode

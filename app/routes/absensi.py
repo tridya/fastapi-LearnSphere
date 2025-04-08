@@ -18,69 +18,79 @@ async def api_store_absensi(
     db: sqlite3.Connection = Depends(get_db_connection),
     current_user: dict = Depends(get_current_user)
 ):
-    logger.info(f"Memulai api_store_absensi untuk absensi: {absensi}, user: {current_user}")
-    if current_user["role"] != "guru":
-        logger.error("User bukan guru")
-        raise HTTPException(status_code=403, detail="Only teachers can record attendance")
-    
-    cursor = db.cursor()
-    logger.info(f"Mencari siswa dengan siswa_id: {absensi.siswa_id}")
-    cursor.execute("SELECT * FROM siswa WHERE siswa_id = ?", (absensi.siswa_id,))
-    siswa = cursor.fetchone()
-    if not siswa:
-        logger.error(f"Siswa tidak ditemukan untuk siswa_id: {absensi.siswa_id}")
-        raise HTTPException(status_code=404, detail="Siswa not found")
-    
-    # Pastikan user adalah wali kelas dari kelas siswa
-    logger.info(f"Memeriksa kelas dengan kelas_id: {siswa[2]} dan wali_kelas_id: {current_user['user_id']}")
-    cursor.execute("SELECT * FROM kelas WHERE kelas_id = ? AND wali_kelas_id = ?", (siswa[2], current_user["user_id"]))
-    kelas = cursor.fetchone()
-    if not kelas:
-        logger.error(f"User bukan wali kelas untuk kelas_id: {siswa[2]}")
-        raise HTTPException(status_code=403, detail="You are not the class teacher of this student")
-    
-    # Cek apakah absensi sudah ada untuk siswa dan tanggal tersebut
-    logger.info(f"Mencari absensi yang sudah ada untuk siswa_id: {absensi.siswa_id}, tanggal: {absensi.tanggal}")
-    cursor.execute(
-        "SELECT * FROM absensi WHERE siswa_id = ? AND tanggal = ?",
-        (absensi.siswa_id, absensi.tanggal)
-    )
-    existing_absensi = cursor.fetchone()
-    if existing_absensi:
-        logger.info(f"Absensi ditemukan, memperbarui status ke: {absensi.status}")
+    try:
+        # Verifikasi role
+        if current_user["role"] != "guru":
+            logger.error(f"User {current_user['username']} (ID: {current_user['user_id']}) is not a guru")
+            raise HTTPException(status_code=403, detail="Only teachers can record attendance")
+
+        db.row_factory = sqlite3.Row
+        cursor = db.cursor()
+
+        # Verifikasi siswa
+        logger.info(f"User {current_user['username']} (ID: {current_user['user_id']}) verifying siswa_id: {absensi.siswa_id}")
+        cursor.execute("SELECT * FROM siswa WHERE siswa_id = ?", (absensi.siswa_id,))
+        siswa = cursor.fetchone()
+        if not siswa:
+            logger.error(f"Siswa_id {absensi.siswa_id} not found for user {current_user['username']}")
+            raise HTTPException(status_code=404, detail="Siswa not found")
+
+        # Verifikasi wali kelas
+        logger.info(f"User {current_user['username']} checking wali kelas for kelas_id: {siswa['kelas_id']}")
         cursor.execute(
-            "UPDATE absensi SET status = ? WHERE absensi_id = ?",
-            (absensi.status, existing_absensi[0])
+            "SELECT * FROM kelas WHERE kelas_id = ? AND wali_kelas_id = ?",
+            (siswa["kelas_id"], current_user["user_id"])
         )
-        db.commit()
-        cursor.execute("SELECT * FROM absensi WHERE absensi_id = ?", (existing_absensi[0],))
-        updated_absensi = cursor.fetchone()
-        logger.info(f"Absensi diperbarui: {updated_absensi}")
-        return {
-            "absensi_id": updated_absensi[0],
-            "siswa_id": updated_absensi[1],
-            "tanggal": updated_absensi[2],
-            "status": updated_absensi[3]
-        }
-    
-    logger.info("Membuat absensi baru")
-    cursor.execute(
-        "INSERT INTO absensi (siswa_id, tanggal, status) VALUES (?, ?, ?)",
-        (absensi.siswa_id, absensi.tanggal, absensi.status)
-    )
-    db.commit()
-    cursor.execute("SELECT * FROM absensi WHERE absensi_id = ?", (cursor.lastrowid,))
-    new_absensi = cursor.fetchone()
-    if not new_absensi:
-        logger.error("Gagal mengambil absensi yang baru dibuat")
-        raise HTTPException(status_code=500, detail="Failed to retrieve newly created absensi")
-    logger.info(f"Absensi baru dibuat: {new_absensi}")
-    return {
-        "absensi_id": new_absensi[0],
-        "siswa_id": new_absensi[1],
-        "tanggal": new_absensi[2],
-        "status": new_absensi[3]
-    }
+        kelas = cursor.fetchone()
+        if not kelas:
+            logger.error(f"User {current_user['user_id']} is not the wali kelas of kelas_id {siswa['kelas_id']}")
+            raise HTTPException(status_code=403, detail="You are not the class teacher of this student")
+
+        # Validasi tanggal
+        try:
+            datetime.strptime(absensi.tanggal, "%Y-%m-%d")
+        except ValueError:
+            logger.error(f"Invalid date format: {absensi.tanggal} by user {current_user['username']}")
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+        # Cek absensi existing
+        cursor.execute(
+            "SELECT * FROM absensi WHERE siswa_id = ? AND tanggal = ?",
+            (absensi.siswa_id, absensi.tanggal)
+        )
+        existing_absensi = cursor.fetchone()
+
+        if existing_absensi:
+            logger.info(f"User {current_user['username']} updating absensi for siswa_id: {absensi.siswa_id}")
+            cursor.execute(
+                "UPDATE absensi SET status = ? WHERE absensi_id = ?",
+                (absensi.status, existing_absensi["absensi_id"])
+            )
+            db.commit()
+            cursor.execute("SELECT * FROM absensi WHERE absensi_id = ?", (existing_absensi["absensi_id"],))
+            updated_absensi = cursor.fetchone()
+            logger.info(f"Absensi updated for siswa_id: {absensi.siswa_id} by user {current_user['username']}")
+            return dict(updated_absensi)
+        else:
+            logger.info(f"User {current_user['username']} creating new absensi for siswa_id: {absensi.siswa_id}")
+            cursor.execute(
+                "INSERT INTO absensi (siswa_id, tanggal, status) VALUES (?, ?, ?)",
+                (absensi.siswa_id, absensi.tanggal, absensi.status)
+            )
+            db.commit()
+            cursor.execute("SELECT * FROM absensi WHERE absensi_id = ?", (cursor.lastrowid,))
+            new_absensi = cursor.fetchone()
+            logger.info(f"New absensi created for siswa_id: {absensi.siswa_id} by user {current_user['username']}")
+            return dict(new_absensi)
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error for user {current_user['username']}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error for user {current_user['username']}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/kelas/{kelas_id}", response_model=List[AbsensiResponse])
 async def get_absensi_by_class_and_date(
@@ -90,65 +100,57 @@ async def get_absensi_by_class_and_date(
     current_user: dict = Depends(get_current_user)
 ):
     try:
-        logger.info(f"Memulai get_absensi_by_class_and_date untuk kelas_id: {kelas_id}, tanggal: {tanggal}, user: {current_user}")
-        
+        # Verifikasi role
         if current_user["role"] != "guru":
-            logger.error("User bukan guru")
-            raise HTTPException(status_code=403, detail="Hanya guru yang dapat mengakses absensi")
-        
+            logger.error(f"User {current_user['username']} (ID: {current_user['user_id']}) is not a guru")
+            raise HTTPException(status_code=403, detail="Only teachers can access attendance")
+
+        db.row_factory = sqlite3.Row
         cursor = db.cursor()
-        # Pastikan kelas ada dan user adalah wali kelas
-        logger.info(f"Memeriksa kelas dengan kelas_id: {kelas_id} dan wali_kelas_id: {current_user['user_id']}")
-        cursor.execute("SELECT * FROM kelas WHERE kelas_id = ? AND wali_kelas_id = ?", (kelas_id, current_user["user_id"]))
+
+        # Verifikasi wali kelas
+        logger.info(f"User {current_user['username']} checking authorization for kelas_id: {kelas_id}")
+        cursor.execute(
+            "SELECT * FROM kelas WHERE kelas_id = ? AND wali_kelas_id = ?",
+            (kelas_id, current_user["user_id"])
+        )
         kelas = cursor.fetchone()
-        logger.info(f"Hasil query kelas: {kelas}")
         if not kelas:
-            logger.error(f"Kelas tidak ditemukan atau user bukan wali kelas untuk kelas_id: {kelas_id}")
-            raise HTTPException(status_code=404, detail="Kelas tidak ditemukan atau Anda bukan wali kelas")
-        
-        # Konversi tanggal dari string ke string (karena di database bertipe TEXT)
+            logger.error(f"User {current_user['user_id']} is not the wali kelas of kelas_id {kelas_id}")
+            raise HTTPException(status_code=403, detail="You are not the class teacher of this class")
+
+        # Validasi tanggal
         try:
-            # Validasi format tanggal
-            tanggal_date = datetime.strptime(tanggal, "%Y-%m-%d").date()
-            tanggal_str = tanggal_date.strftime("%Y-%m-%d")  # Konversi ke string untuk query
-            logger.info(f"Tanggal dikonversi ke: {tanggal_str}")
-        except ValueError as e:
-            logger.error(f"Format tanggal salah: {tanggal}, error: {str(e)}")
-            raise HTTPException(status_code=400, detail="Format tanggal salah. Gunakan YYYY-MM-DD")
-        
-        # Ambil daftar siswa di kelas tersebut
-        logger.info(f"Mengambil daftar siswa untuk kelas_id: {kelas_id}")
+            datetime.strptime(tanggal, "%Y-%m-%d")
+        except ValueError:
+            logger.error(f"Invalid date format: {tanggal} by user {current_user['username']}")
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+        # Ambil daftar siswa
+        logger.info(f"User {current_user['username']} fetching siswa for kelas_id: {kelas_id}")
         cursor.execute("SELECT siswa_id FROM siswa WHERE kelas_id = ?", (kelas_id,))
-        siswa_ids = [row[0] for row in cursor.fetchall()]
-        logger.info(f"Ditemukan {len(siswa_ids)} siswa: {siswa_ids}")
-        
-        if not siswa_ids:
-            logger.info(f"Tidak ada siswa ditemukan untuk kelas_id: {kelas_id}")
-            return []  # Return empty list kalau nggak ada siswa
-        
-        # Ambil absensi untuk siswa-siswa tersebut pada tanggal yang diberikan
-        query = "SELECT * FROM absensi WHERE siswa_id IN ({}) AND tanggal = ?".format(','.join(['?'] * len(siswa_ids)))
-        params = siswa_ids + [tanggal_str]
-        logger.info(f"Menjalankan query: {query} dengan params: {params}")
-        
+        siswa_list = cursor.fetchall()
+        if not siswa_list:
+            logger.info(f"No siswa found for kelas_id: {kelas_id} by user {current_user['username']}")
+            return []
+
+        siswa_ids = [row["siswa_id"] for row in siswa_list]
+        # Gunakan IN dengan parameter untuk mencegah SQL injection
+        placeholders = ",".join("?" for _ in siswa_ids)
+        query = f"SELECT * FROM absensi WHERE siswa_id IN ({placeholders}) AND tanggal = ?"
+        params = siswa_ids + [tanggal]
+        logger.debug(f"User {current_user['username']} executing query: {query} with params: {params}")
         cursor.execute(query, params)
         absensi_list = cursor.fetchall()
-        logger.info(f"Hasil query absensi: {absensi_list}")
-        
-        # Konversi hasil query ke format AbsensiResponse
-        absensi_response = [
-            {
-                "absensi_id": row[0],
-                "siswa_id": row[1],
-                "tanggal": row[2],
-                "status": row[3]
-            }
-            for row in absensi_list
-        ]
-        
-        logger.info(f"Absensi ditemukan: {len(absensi_response)} entri untuk kelas_id: {kelas_id}, tanggal: {tanggal}")
-        return absensi_response if absensi_response else []
-    
+
+        logger.info(f"User {current_user['username']} found {len(absensi_list)} absensi records for kelas_id: {kelas_id}")
+        return [dict(row) for row in absensi_list]
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error for user {current_user['username']}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        logger.error(f"Error saat mengambil absensi: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+        logger.error(f"Unexpected error for user {current_user['username']}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

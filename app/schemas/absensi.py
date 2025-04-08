@@ -14,4 +14,4 @@ class AbsensiResponse(BaseModel):
     status: Literal["Hadir", "Izin", "Sakit", "Alpa"]
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode

@@ -10,4 +10,4 @@ class KelasResponse(BaseModel):
     wali_kelas_id: int
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # Changed from orm_mode

@@ -15,4 +15,4 @@ class SiswaResponse(BaseModel):
     kode_siswa: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode

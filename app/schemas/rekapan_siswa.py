@@ -13,10 +13,10 @@ class RekapanSiswaResponse(BaseModel):
     report_id: int
     siswa_id: int
     guru_id: int
-    mata_pelajaran_id: int  # Diubah dari mata_pelajaran
+    mata_pelajaran_id: int
     rating: Literal["Sangat Baik", "Baik", "Cukup", "Kurang", "Buruk"]
     catatan: Optional[str]
     tanggal: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode

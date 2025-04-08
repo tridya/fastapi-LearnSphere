@@ -7,4 +7,4 @@ class Absensi(Base):
     absensi_id = Column(Integer, primary_key=True, index=True)
     siswa_id = Column(Integer, ForeignKey("siswa.siswa_id", ondelete="CASCADE"), nullable=False)
     tanggal = Column(Date, nullable=False)
-    status = Column(Enum("Hadir", "Izin", "Sakit", "Alpa", name="absensi_status"), nullable=False)
+    status = Column(Enum("Hadir", "Izin", "Sakit", "Alpa", name="absensi_status"), nullable=False)  

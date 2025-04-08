@@ -1,0 +1,165 @@
+<!-- templates/siswa.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siswa - LearnSphere</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        form {
+            margin: 20px 0;
+        }
+        nav a {
+            margin-right: 15px;
+        }
+        .action-buttons form {
+            display: inline;
+            margin: 0 5px;
+        }
+        #edit-form {
+            display: none;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background-color: #f9f9f9;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>LearnSphere - Daftar Siswa</h1>
+        <nav>
+            <a href="/dashboard/siswa">Siswa</a> |
+            <a href="/dashboard/jadwal">Jadwal</a> |
+            <a href="/dashboard/mata-pelajaran">Mata Pelajaran</a> |
+            <a href="/register">Register</a> |
+            <a href="/login">Login</a>
+        </nav>
+    </header>
+    <main>
+        <h3>Pilih Kelas</h3>
+        <form method="get" action="/dashboard/siswa">
+            <select name="kelas_id" onchange="this.form.submit()">
+                <option value="">Semua Kelas</option>
+                {% for kelas in kelas_list %}
+                <option value="{{ kelas.kelas_id }}" {% if kelas.kelas_id == selected_kelas_id %}selected{% endif %}>
+                    {{ kelas.nama_kelas }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <h3>Daftar Siswa</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nama</th>
+                    <th>Kelas</th>
+                    <th>Kode Siswa</th>
+                    <th>Orang Tua ID</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for siswa in siswa_list %}
+                <tr>
+                    <td>{{ siswa.siswa_id }}</td>
+                    <td>{{ siswa.nama }}</td>
+                    <td>{{ siswa.nama_kelas }}</td>
+                    <td>{{ siswa.kode_siswa }}</td>
+                    <td>{{ siswa.orang_tua_id }}</td>
+                    <td class="action-buttons">
+                        <button onclick="showEditForm({{ siswa.siswa_id }}, '{{ siswa.nama }}', {{ siswa.kelas_id }}, '{{ siswa.orang_tua_id or '' }}', '{{ siswa.kode_siswa or '' }}')">Edit</button>
+                        <form action="/dashboard/siswa/delete/{{ siswa.siswa_id }}" method="post" onsubmit="return confirm('Yakin ingin menghapus siswa ini?');">
+                            <input type="hidden" name="kelas_id" value="{{ selected_kelas_id }}">
+                            <input type="submit" value="Hapus" style="background-color: #f44336;">
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Tambah Siswa</h3>
+        <form action="/dashboard/siswa/add" method="post">
+            <label for="nama">Nama:</label><br>
+            <input type="text" id="nama" name="nama" required><br><br>
+            <label for="kelas_id">Kelas:</label><br>
+            <select id="kelas_id" name="kelas_id" required>
+                {% for kelas in kelas_list %}
+                <option value="{{ kelas.kelas_id }}">{{ kelas.nama_kelas }}</option>
+                {% endfor %}
+            </select><br><br>
+            <label for="orang_tua_id">Orang Tua:</label><br>
+            <select id="orang_tua_id" name="orang_tua_id">
+                <option value="">Tidak Ada</option>
+                {% for orang_tua in orang_tua_list %}
+                <option value="{{ orang_tua.user_id }}">{{ orang_tua.nama }}</option>
+                {% endfor %}
+            </select><br><br>
+            <label for="kode_siswa">Kode Siswa:</label><br>
+            <input type="text" id="kode_siswa" name="kode_siswa"><br><br>
+            <input type="submit" value="Tambah Siswa">
+        </form>
+
+        <!-- Single Edit Form (Populated dynamically) -->
+        <div id="edit-form">
+            <h3>Edit Siswa</h3>
+            <form id="edit-siswa-form" action="" method="post">
+                <input type="hidden" id="edit-siswa-id" name="siswa_id">
+                <label for="edit-nama">Nama:</label><br>
+                <input type="text" id="edit-nama" name="nama" required><br><br>
+                <label for="edit-kelas_id">Kelas:</label><br>
+                <select id="edit-kelas_id" name="kelas_id" required>
+                    {% for kelas in kelas_list %}
+                    <option value="{{ kelas.kelas_id }}">{{ kelas.nama_kelas }}</option>
+                    {% endfor %}
+                </select><br><br>
+                <label for="edit-orang_tua_id">Orang Tua:</label><br>
+                <select id="edit-orang_tua_id" name="orang_tua_id">
+                    <option value="">Tidak Ada</option>
+                    {% for orang_tua in orang_tua_list %}
+                    <option value="{{ orang_tua.user_id }}">{{ orang_tua.nama }}</option>
+                    {% endfor %}
+                </select><br><br>
+                <label for="edit-kode_siswa">Kode Siswa:</label><br>
+                <input type="text" id="edit-kode_siswa" name="kode_siswa"><br><br>
+                <input type="submit" value="Simpan Perubahan">
+                <button type="button" onclick="hideEditForm()">Batal</button>
+            </form>
+        </div>
+    </main>
+    <footer>
+        <p>© 2025 LearnSphere. All rights reserved.</p>
+    </footer>
+    <script>
+        function showEditForm(siswaId, nama, kelasId, orangTuaId, kodeSiswa) {
+            document.getElementById('edit-form').style.display = 'block';
+            document.getElementById('edit-siswa-form').action = `/dashboard/siswa/update/${siswaId}`;
+            document.getElementById('edit-nama').value = nama;
+            document.getElementById('edit-kelas_id').value = kelasId;
+            document.getElementById('edit-orang_tua_id').value = orangTuaId || '';
+            document.getElementById('edit-kode_siswa').value = kodeSiswa || '';
+        }
+
+        function hideEditForm() {
+            document.getElementById('edit-form').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

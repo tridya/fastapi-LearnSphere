@@ -13,4 +13,4 @@ class MataPelajaranResponse(MataPelajaranBase):
     mata_pelajaran_id: int
 
     class Config:
-        from_attributes = True  # Diubah dari orm_mode
+        from_attributes = True  # Already correct, no change needed

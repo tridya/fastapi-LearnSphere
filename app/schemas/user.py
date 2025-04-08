@@ -12,11 +12,11 @@ class UserCreate(UserBase):
 
 class UserInDB(UserBase):
     user_id: int
-    password: str  # Hashed password
+    password: str
     created_at: datetime
 
     class Config:
-        from_attributes = True  # Diubah ke from_attributes
+        from_attributes = True  # Already correct, no change needed
 
 class UserLogin(BaseModel):
     username: str

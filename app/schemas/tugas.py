@@ -15,4 +15,4 @@ class TugasResponse(BaseModel):
     batas_waktu: date
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode
