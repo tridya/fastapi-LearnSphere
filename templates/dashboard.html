@@ -1,23 +1,148 @@
-<!-- fastapi-LearnSphere/templates/dashboard.html -->
+<!-- templates/dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - LearnSphere</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        form {
+            margin: 20px 0;
+        }
+        nav a {
+            margin-right: 15px;
+        }
+    </style>
 </head>
 <body>
     <header>
         <h1>LearnSphere Dashboard</h1>
         <nav>
-            <a href="/">Home</a>
+            <a href="/dashboard">Dashboard</a> |
+            <a href="/register">Register</a> |
+            <a href="/login">Login</a> <!-- Changed Logout to Login since no auth required -->
         </nav>
     </header>
     <main>
-        <h2>Welcome, {{ username }}!</h2>
-        <p>Role: {{ role }}</p>
-        <p>This is your dashboard. You can manage your classes, students, and more from here.</p>
+        <h3>Daftar Siswa</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nama</th>
+                    <th>Kelas</th>
+                    <th>Kode Siswa</th>
+                    <th>Orang Tua ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for siswa in siswa_list %}
+                <tr>
+                    <td>{{ siswa.siswa_id }}</td>
+                    <td>{{ siswa.nama }}</td>
+                    <td>{{ siswa.nama_kelas }}</td>
+                    <td>{{ siswa.kode_siswa }}</td>
+                    <td>{{ siswa.orang_tua_id }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Tambah Siswa</h3>
+        <form action="/dashboard/add-siswa" method="post">
+            <label for="nama">Nama:</label><br>
+            <input type="text" id="nama" name="nama" required><br><br>
+            <label for="kelas_id">Kelas:</label><br>
+            <select id="kelas_id" name="kelas_id" required>
+                {% for kelas in kelas_list %}
+                <option value="{{ kelas.kelas_id }}">{{ kelas.nama_kelas }}</option>
+                {% endfor %}
+            </select><br><br>
+            <label for="orang_tua_id">Orang Tua:</label><br>
+            <select id="orang_tua_id" name="orang_tua_id">
+                <option value="">Tidak Ada</option>
+                {% for orang_tua in orang_tua_list %}
+                <option value="{{ orang_tua.user_id }}">{{ orang_tua.nama }}</option>
+                {% endfor %}
+            </select><br><br>
+            <label for="kode_siswa">Kode Siswa:</label><br>
+            <input type="text" id="kode_siswa" name="kode_siswa"><br><br>
+            <input type="submit" value="Tambah Siswa">
+        </form>
+
+        <h3>Jadwal Mata Pelajaran per Kelas</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Kelas</th>
+                    <th>Hari</th>
+                    <th>Jam Mulai</th>
+                    <th>Jam Selesai</th>
+                    <th>Mata Pelajaran</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for jadwal in kelas_jadwal %}
+                <tr>
+                    <td>{{ jadwal.nama_kelas }}</td>
+                    <td>{{ jadwal.hari }}</td>
+                    <td>{{ jadwal.jam_mulai }}</td>
+                    <td>{{ jadwal.jam_selesai }}</td>
+                    <td>{{ jadwal.mata_pelajaran }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Daftar Mata Pelajaran</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nama</th>
+                    <th>Kode</th>
+                    <th>Deskripsi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mp in mata_pelajaran_list %}
+                <tr>
+                    <td>{{ mp.mata_pelajaran_id }}</td>
+                    <td>{{ mp.nama }}</td>
+                    <td>{{ mp.kode }}</td>
+                    <td>{{ mp.deskripsi }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Tambah Mata Pelajaran</h3>
+        <form action="/dashboard/add-mata-pelajaran" method="post">
+            <label for="nama">Nama:</label><br>
+            <input type="text" id="nama" name="nama" required><br><br>
+            <label for="kode">Kode:</label><br>
+            <input type="text" id="kode" name="kode"><br><br>
+            <label for="deskripsi">Deskripsi:</label><br>
+            <textarea id="deskripsi" name="deskripsi"></textarea><br><br>
+            <input type="submit" value="Tambah Mata Pelajaran">
+        </form>
     </main>
+    <footer>
+        <p>© 2025 LearnSphere. All rights reserved.</p>
+    </footer>
 </body>
 </html>

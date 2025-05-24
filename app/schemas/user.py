@@ -3,6 +3,7 @@ from typing import Literal, Optional
 from datetime import datetime
 
 class UserBase(BaseModel):
+    user_id:int
     nama: str
     username: str
     role: Literal["guru", "orang_tua"]

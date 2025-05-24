@@ -1,56 +1,28 @@
-# app/routes/siswa.py
-# from fastapi import APIRouter, Depends, HTTPException
-# from app.schemas.siswa import SiswaCreate, SiswaResponse
-# from app.dependencies import get_db_connection, get_current_user
-# import sqlite3
-
-# router = APIRouter(prefix="/api/siswa", tags=["siswa"])
-
-# @router.post("/", response_model=SiswaResponse)
-# async def api_create_siswa(
-#     siswa: SiswaCreate,
-#     db: sqlite3.Connection = Depends(get_db_connection),
-#     current_user: dict = Depends(get_current_user)
-# ):
-#     if current_user["role"] != "guru":
-#         raise HTTPException(status_code=403, detail="Only teachers can create a student")
-    
-#     cursor = db.cursor()
-#     # Validasi kelas_id
-#     cursor.execute("SELECT * FROM kelas WHERE kelas_id = ?", (siswa.kelas_id,))
-#     if not cursor.fetchone():
-#         raise HTTPException(status_code=404, detail="Kelas not found")
-    
-#     # Validasi orang_tua_id (opsional, jika ada)
-#     if siswa.orang_tua_id:
-#         cursor.execute("SELECT * FROM users WHERE user_id = ? AND role = 'orang_tua'", (siswa.orang_tua_id,))
-#         if not cursor.fetchone():
-#             raise HTTPException(status_code=404, detail="Orang tua not found or not a parent")
-    
-#     cursor.execute(
-#         "INSERT INTO siswa (nama, kelas_id, orang_tua_id, kode_siswa) VALUES (?, ?, ?, ?)",
-#         (siswa.nama, siswa.kelas_id, siswa.orang_tua_id, siswa.kode_siswa)
-#     )
-#     db.commit()
-#     cursor.execute("SELECT * FROM siswa WHERE siswa_id = ?", (cursor.lastrowid,))
-#     new_siswa = cursor.fetchone()
-#     if not new_siswa:
-#         raise HTTPException(status_code=500, detail="Failed to retrieve newly created siswa")
-#     return new_siswa
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.dependencies import get_db_connection, get_current_user
 import sqlite3
 from typing import List
+import logging
+from app.schemas.siswa import SiswaResponse
 
 router = APIRouter(prefix="/api/siswa", tags=["siswa"])
 
-@router.get("/kelas/{kelas_id}")
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+@router.get("/kelas/{kelas_id}", response_model=List[SiswaResponse])
 async def get_siswa_by_kelas(
     kelas_id: int,
     db: sqlite3.Connection = Depends(get_db_connection),
     current_user: dict = Depends(get_current_user)
 ):
+    """
+    Fetch all students in a specific class for the homeroom teacher.
+    """
+    logger.debug(f"Endpoint /api/siswa/kelas/{kelas_id} invoked for user {current_user['user_id']}")
+    
     if current_user["role"] != "guru":
+        logger.error(f"Access denied for user {current_user['user_id']}: not a guru")
         raise HTTPException(status_code=403, detail="Only teachers can access student data")
     
     cursor = db.cursor()
@@ -61,20 +33,98 @@ async def get_siswa_by_kelas(
     )
     kelas = cursor.fetchone()
     if not kelas:
+        logger.error(f"Kelas {kelas_id} not found or user {current_user['user_id']} is not wali kelas")
         raise HTTPException(status_code=404, detail="Kelas tidak ditemukan atau Anda bukan wali kelas")
     
     # Ambil daftar siswa di kelas tersebut
-    cursor.execute("SELECT * FROM siswa WHERE kelas_id = ?", (kelas_id,))
+    cursor.execute(
+        """
+        SELECT siswa_id, nama, kelas_id, orang_tua_id, kode_siswa 
+        FROM siswa 
+        WHERE kelas_id = ?
+        """,
+        (kelas_id,)
+    )
     siswa_list = cursor.fetchall()
     if not siswa_list:
-        return []  # Return empty list jika tidak ada siswa
+        logger.info(f"No students found for kelas_id: {kelas_id}")
+        return []
     
-    # Format response sesuai dengan SiswaResponse
+    logger.info(f"Found {len(siswa_list)} students for kelas_id: {kelas_id}")
+    
+    # Map to SiswaResponse
     return [
-        {
-            "siswa_id": row[0],
-            "nama": row[1],
-            "kelas_id": row[2]
-        }
+        SiswaResponse(
+            siswa_id=row[0],
+            nama=row[1],
+            kelas_id=row[2],
+            orang_tua_id=row[3],
+            kode_siswa=row[4]
+        )
+        for row in siswa_list
+    ]
+
+@router.get("/orangtua", response_model=List[SiswaResponse])
+async def get_siswa_orangtua(
+    db: sqlite3.Connection = Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Fetch all students associated with the authenticated parent user.
+    """
+    logger.debug(f"Endpoint /api/siswa/orangtua invoked for user {current_user['user_id']}, role={current_user['role']}")
+    
+    # Restrict access to parents only
+    if current_user["role"] != "orang_tua":
+        logger.error(f"Access denied for user {current_user['user_id']}: role is {current_user['role']}, expected orang_tua")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Hanya orang tua yang dapat mengakses data siswa"
+        )
+    
+    cursor = db.cursor()
+    
+    # Fetch the orang_tua_id linked to the user
+    cursor.execute(
+        "SELECT orang_tua_id FROM orang_tua WHERE user_id = ?",
+        (current_user["user_id"],)
+    )
+    orang_tua = cursor.fetchone()
+    if not orang_tua:
+        logger.error(f"No orang_tua record found for user_id: {current_user['user_id']}. Please ensure an orang_tua record exists in the database.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Akun orang tua tidak ditemukan untuk user_id {current_user['user_id']}. Hubungi admin untuk mendaftarkan akun orang tua."
+        )
+    
+    orang_tua_id = orang_tua[0]
+    logger.debug(f"Found orang_tua_id: {orang_tua_id} for user_id: {current_user['user_id']}")
+    
+    # Fetch students linked to the orang_tua_id
+    cursor.execute(
+        """
+        SELECT siswa_id, nama, kelas_id, orang_tua_id, kode_siswa 
+        FROM siswa 
+        WHERE orang_tua_id = ?
+        """,
+        (orang_tua_id,)
+    )
+    siswa_list = cursor.fetchall()
+    
+    if not siswa_list:
+        logger.info(f"No students found for orang_tua_id: {orang_tua_id}")
+        return []
+    
+    logger.info(f"Found {len(siswa_list)} students for orang_tua_id: {orang_tua_id}")
+    
+    # Map to SiswaResponse
+    return [
+        SiswaResponse(
+            siswa_id=row[0],
+            nama=row[1],
+            kelas_id=row[2],
+            orang_tua_id=row[3],
+            kode_siswa=row[4]
+        )
         for row in siswa_list
     ]
