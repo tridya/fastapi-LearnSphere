@@ -31,3 +31,5 @@ async def api_create_mata_pelajaran(
         raise HTTPException(status_code=400, detail="Nama atau kode mata pelajaran sudah ada")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    
+    

@@ -1,8 +1,15 @@
-
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Optional
 from app.schemas.mata_pelajaran import MataPelajaranResponse
-from app.schemas.user import UserInDB
+
+class WaliKelasResponse(BaseModel):
+    user_id: int
+    nama: str
+    username: str
+    role: str
+
+    class Config:
+        from_attributes = True
 
 class JadwalBase(BaseModel):
     kelas_id: int
@@ -17,7 +24,7 @@ class JadwalCreate(JadwalBase):
 class JadwalResponse(JadwalBase):
     jadwal_id: int
     mata_pelajaran: MataPelajaranResponse
-    wali_kelas: UserInDB
+    wali_kelas: WaliKelasResponse  # Gunakan skema baru
 
     class Config:
         from_attributes = True
