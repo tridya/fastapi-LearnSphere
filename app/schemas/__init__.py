@@ -6,7 +6,7 @@ from .jadwal import JadwalCreate, JadwalResponse
 from .perilaku import PerilakuCreate, PerilakuResponse
 from .notifikasi import NotifikasiCreate, NotifikasiResponse
 from .tugas import TugasCreate, TugasResponse
-from .rekapan_siswa import RekapanSiswaCreate, RekapanSiswaResponse
+from .rekapan_siswa import RekapanSiswaCreate, RekapanSiswaResponse, StatusRekapanSiswa, KelasResponse, MataPelajaranResponse
 from .mata_pelajaran import MataPelajaranCreate, MataPelajaranResponse
 
 __all__ = [
@@ -18,6 +18,6 @@ __all__ = [
     "PerilakuCreate", "PerilakuResponse",
     "NotifikasiCreate", "NotifikasiResponse",
     "TugasCreate", "TugasResponse",
-    "RekapanSiswaCreate", "RekapanSiswaResponse",
+    "RekapanSiswaCreate", "RekapanSiswaResponse","StatusRekapanSiswa",
     "MataPelajaranCreate", "MataPelajaranResponse",
 ]

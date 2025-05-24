@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main
 from pydantic import BaseModel
 from typing import Literal
 from app.schemas.mata_pelajaran import MataPelajaranResponse

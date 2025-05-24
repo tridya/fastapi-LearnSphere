@@ -84,7 +84,10 @@
                     <td>{{ siswa.kode_siswa }}</td>
                     <td>{{ siswa.orang_tua_id }}</td>
                     <td class="action-buttons">
+<<<<<<< HEAD
                         <button onclick="showEditForm({{ siswa.siswa_id }}, '{{ siswa.nama }}', {{ siswa.kelas_id }}, '{{ siswa.orang_tua_id or '' }}', '{{ siswa.kode_siswa or '' }}')">Edit</button>
+=======
+>>>>>>> origin/main
                         <form action="/dashboard/siswa/delete/{{ siswa.siswa_id }}" method="post" onsubmit="return confirm('Yakin ingin menghapus siswa ini?');">
                             <input type="hidden" name="kelas_id" value="{{ selected_kelas_id }}">
                             <input type="submit" value="Hapus" style="background-color: #f44336;">
