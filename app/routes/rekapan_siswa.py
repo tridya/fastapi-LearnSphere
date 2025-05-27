@@ -35,24 +35,27 @@ async def create_rekapan_siswa(
     
     cursor = db.cursor()
 
-    # Validasi siswa_id
+    # Validate siswa_id
     cursor.execute("SELECT nama, orang_tua_id FROM siswa WHERE siswa_id = ?", (rekapan.siswa_id,))
     siswa = cursor.fetchone()
     if not siswa:
         logger.error(f"Invalid siswa_id: {rekapan.siswa_id}")
         raise HTTPException(status_code=404, detail=f"Siswa dengan ID {rekapan.siswa_id} tidak ditemukan di database")
     
-    # Gunakan current_user['user_id'] sebagai guru_id
+    # Use current_user['user_id'] as guru_id
     guru_id = current_user["user_id"]
     
-    # Validasi mata_pelajaran_id
-    cursor.execute("SELECT nama FROM mata_pelajaran WHERE mata_pelajaran_id = ?", (rekapan.mata_pelajaran_id,))
+    # Validate mata_pelajaran_id and fetch all required fields
+    cursor.execute(
+        "SELECT mata_pelajaran_id, nama, kode, deskripsi FROM mata_pelajaran WHERE mata_pelajaran_id = ?",
+        (rekapan.mata_pelajaran_id,)
+    )
     mata_pelajaran = cursor.fetchone()
     if not mata_pelajaran:
         logger.error(f"Invalid mata_pelajaran_id: {rekapan.mata_pelajaran_id}")
         raise HTTPException(status_code=404, detail=f"Mata pelajaran dengan ID {rekapan.mata_pelajaran_id} tidak ditemukan di database")
     
-    # Cek duplikasi rekapan untuk hari ini
+    # Check for duplicate rekapan for today
     cursor.execute(
         """
         SELECT * FROM rekapan_siswa 
@@ -79,16 +82,16 @@ async def create_rekapan_siswa(
         logger.error(f"Database error while inserting rekapan: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Gagal menyimpan rekapan: {str(e)}")
     
-    # Ambil rekapan yang baru dibuat
+    # Fetch the newly created rekapan
     cursor.execute("SELECT * FROM rekapan_siswa WHERE report_id = ?", (cursor.lastrowid,))
     new_rekapan = cursor.fetchone()
     if not new_rekapan:
         logger.error("Failed to retrieve newly created rekapan")
         raise HTTPException(status_code=500, detail="Gagal mengambil rekapan yang baru dibuat")
     
-    # Buat notifikasi untuk orang tua jika ada
+    # Create notification for parent if applicable
     if siswa[1]:  # orang_tua_id
-        deskripsi = f"Rekapan harian untuk {siswa[0]} pada mata pelajaran {mata_pelajaran[0]} telah dibuat: {rekapan.rating}"
+        deskripsi = f"Rekapan harian untuk {siswa[0]} pada mata pelajaran {mata_pelajaran[1]} telah dibuat: {rekapan.rating}"
         try:
             cursor.execute(
                 """
@@ -116,104 +119,9 @@ async def create_rekapan_siswa(
         mata_pelajaran=MataPelajaranResponse(
             mata_pelajaran_id=mata_pelajaran[0],
             nama=mata_pelajaran[1],
-            kode=None,
-            deskripsi=None
-        ) if mata_pelajaran else None
-    )
-
-@router.put("/{report_id}", response_model=RekapanSiswaResponse)
-async def update_rekapan_siswa(
-    report_id: int,
-    rekapan: RekapanSiswaCreate,
-    db: sqlite3.Connection = Depends(get_db_connection),
-    current_user: dict = Depends(get_current_user)
-):
-    logger.debug(f"Received PUT request to /api/rekapan-siswa/{report_id} with data: {rekapan}")
-    if current_user["role"] != "guru":
-        logger.error(f"Access denied for user {current_user['user_id']}: not a guru")
-        raise HTTPException(status_code=403, detail="Hanya guru yang dapat mengubah rekapan")
-    
-    cursor = db.cursor()
-
-    # Cek apakah rekapan ada
-    cursor.execute("SELECT * FROM rekapan_siswa WHERE report_id = ?", (report_id,))
-    existing_rekapan = cursor.fetchone()
-    if not existing_rekapan:
-        logger.error(f"Rekapan tidak ditemukan untuk report_id: {report_id}")
-        raise HTTPException(status_code=404, detail="Rekapan tidak ditemukan")
-    
-    # Validasi siswa_id
-    cursor.execute("SELECT nama, orang_tua_id FROM siswa WHERE siswa_id = ?", (rekapan.siswa_id,))
-    siswa = cursor.fetchone()
-    if not siswa:
-        logger.error(f"Invalid siswa_id: {rekapan.siswa_id}")
-        raise HTTPException(status_code=404, detail=f"Siswa dengan ID {rekapan.siswa_id} tidak ditemukan di database")
-    
-    # Gunakan current_user['user_id'] sebagai guru_id
-    guru_id = current_user["user_id"]
-    
-    # Validasi mata_pelajaran_id
-    cursor.execute("SELECT nama FROM mata_pelajaran WHERE mata_pelajaran_id = ?", (rekapan.mata_pelajaran_id,))
-    mata_pelajaran = cursor.fetchone()
-    if not mata_pelajaran:
-        logger.error(f"Invalid mata_pelajaran_id: {rekapan.mata_pelajaran_id}")
-        raise HTTPException(status_code=404, detail=f"Mata pelajaran dengan ID {rekapan.mata_pelajaran_id} tidak ditemukan di database")
-    
-    # Update rekapan
-    try:
-        cursor.execute(
-            """
-            UPDATE rekapan_siswa 
-            SET siswa_id = ?, guru_id = ?, mata_pelajaran_id = ?, rating = ?, catatan = ?, tanggal = ?
-            WHERE report_id = ?
-            """,
-            (rekapan.siswa_id, guru_id, rekapan.mata_pelajaran_id, rekapan.rating, rekapan.catatan, datetime.now().isoformat(), report_id)
+            kode=mata_pelajaran[2],
+            deskripsi=mata_pelajaran[3]
         )
-        db.commit()
-    except sqlite3.Error as e:
-        logger.error(f"Database error while updating rekapan: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Gagal memperbarui rekapan: {str(e)}")
-    
-    # Ambil rekapan yang diperbarui
-    cursor.execute("SELECT * FROM rekapan_siswa WHERE report_id = ?", (report_id,))
-    updated_rekapan = cursor.fetchone()
-    if not updated_rekapan:
-        logger.error("Failed to retrieve updated rekapan")
-        raise HTTPException(status_code=500, detail="Gagal mengambil rekapan yang diperbarui")
-    
-    # Buat notifikasi untuk orang tua jika ada
-    if siswa[1]:
-        deskripsi = f"Rekapan harian untuk {siswa[0]} pada mata pelajaran {mata_pelajaran[0]} telah diperbarui: {rekapan.rating}"
-        try:
-            cursor.execute(
-                """
-                INSERT INTO notifikasi (siswa_id, orang_tua_id, jenis, deskripsi, status, tanggal)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (rekapan.siswa_id, siswa[1], "Rekapan", deskripsi, "unread", datetime.now().isoformat())
-            )
-            db.commit()
-            logger.info(f"Notifikasi update dibuat untuk orang_tua_id: {siswa[1]}")
-        except sqlite3.Error as e:
-            logger.error(f"Failed to create notification for orang_tua_id {siswa[1]}: {str(e)}")
-            pass
-    
-    logger.info(f"Updated rekapan report_id: {updated_rekapan[0]} for siswa_id: {rekapan.siswa_id}")
-    return RekapanSiswaResponse(
-        report_id=updated_rekapan[0],
-        siswa_id=updated_rekapan[1],
-        guru_id=updated_rekapan[2],
-        mata_pelajaran_id=updated_rekapan[3],
-        rating=updated_rekapan[5],
-        catatan=updated_rekapan[6],
-        tanggal=updated_rekapan[4],
-        siswa_nama=siswa[0],
-        mata_pelajaran=MataPelajaranResponse(
-            mata_pelajaran_id=mata_pelajaran[0],
-            nama=mata_pelajaran[1],
-            kode=None,
-            deskripsi=None
-        ) if mata_pelajaran else None
     )
 
 @router.get("/daily/{kelas_id}", response_model=List[RekapanSiswaResponse])
@@ -561,29 +469,34 @@ async def get_siswa_orangtua(
     db: sqlite3.Connection = Depends(get_db_connection),
     current_user: dict = Depends(get_current_user)
 ):
-    logger.debug(f"Endpoint /api/rekapan-siswa/siswa invoked for user {current_user['user_id']}")
+    logger.debug(f"Received GET request to /api/rekapan-siswa/siswa for user {current_user['user_id']}")
     if current_user["role"] != "orang_tua":
         logger.error(f"Access denied for user {current_user['user_id']}: not an orang_tua")
         raise HTTPException(status_code=403, detail="Hanya orang tua yang dapat mengakses data siswa")
     
     cursor = db.cursor()
-    # Fetch the orang_tua_id linked to the user
+    # Verify that the user is a parent
     cursor.execute(
-        "SELECT orang_tua_id FROM orang_tua WHERE user_id = ?",
+        "SELECT user_id FROM users WHERE user_id = ? AND role = 'orang_tua'",
         (current_user["user_id"],)
     )
-    orang_tua = cursor.fetchone()
-    if not orang_tua:
-        logger.error(f"No orang_tua record found for user_id: {current_user['user_id']}")
+    parent = cursor.fetchone()
+    if not parent:
+        logger.error(f"No parent record found for user_id: {current_user['user_id']}")
         raise HTTPException(status_code=404, detail="Akun orang tua tidak ditemukan")
     
-    orang_tua_id = orang_tua[0]
+    orang_tua_id = parent[0]
     # Fetch students linked to the orang_tua_id
     cursor.execute(
-        "SELECT siswa_id, nama, kelas_id, orang_tua_id, kode_siswa FROM siswa WHERE orang_tua_id = ?",
+        """
+        SELECT siswa_id, nama, kelas_id, orang_tua_id, kode_siswa 
+        FROM siswa 
+        WHERE orang_tua_id = ?
+        """,
         (orang_tua_id,)
     )
     siswa_list = cursor.fetchall()
+    
     if not siswa_list:
         logger.info(f"No students found for orang_tua_id: {orang_tua_id}")
         return []
@@ -595,7 +508,7 @@ async def get_siswa_orangtua(
             nama=row[1],
             kelas_id=row[2],
             orang_tua_id=row[3],
-            kode_siswa=row[4] if len(row) > 4 else None
+            kode_siswa=row[4]
         )
         for row in siswa_list
     ]
@@ -606,16 +519,12 @@ async def get_rekapan_siswa_orangtua(
     current_user: dict = Depends(get_current_user),
     start_date: Optional[date] = Query(None, description="Start date for filtering (YYYY-MM-DD)"),
     end_date: Optional[date] = Query(None, description="End date for filtering (YYYY-MM-DD)"),
-    mata_pelajaran_id: Optional[int] = Query(None, description="Filter by subject ID")
+    mata_pelajaran_id: Optional[int] = Query(None, description="Filter by subject ID"),
+    siswa_id: Optional[int] = Query(None, description="Filter by student ID")
 ):
-    """
-    Fetch all student report data for parents, limited to students associated with their user_id.
-    Supports optional filtering by date range and subject.
-    """
     logger.debug(f"Received GET request to /api/rekapan-siswa/rekapan for user {current_user['user_id']} "
-                 f"with filters: start_date={start_date}, end_date={end_date}, mata_pelajaran_id={mata_pelajaran_id}")
+                 f"with filters: start_date={start_date}, end_date={end_date}, mata_pelajaran_id={mata_pelajaran_id}, siswa_id={siswa_id}")
     
-    # Restrict access to parents only
     if current_user["role"] != "orang_tua":
         logger.error(f"Access denied for user {current_user['user_id']}: not an orang_tua")
         raise HTTPException(status_code=403, detail="Hanya orang tua yang dapat mengakses rekapan")
@@ -649,14 +558,19 @@ async def get_rekapan_siswa_orangtua(
     siswa_ids = [row[0] for row in siswa_list]
     siswa_names = {row[0]: row[1] for row in siswa_list}
     
+    # Validate siswa_id if provided
+    if siswa_id and siswa_id not in siswa_ids:
+        logger.error(f"Invalid siswa_id: {siswa_id} for orang_tua_id: {orang_tua_id}")
+        raise HTTPException(status_code=403, detail="Siswa tidak terkait dengan akun orang tua")
+    
     # Build the query for rekapan_siswa with optional filters
     query = """
         SELECT rs.report_id, rs.siswa_id, rs.guru_id, rs.mata_pelajaran_id, rs.tanggal, 
                rs.rating, rs.catatan
         FROM rekapan_siswa rs
         WHERE rs.siswa_id IN ({})
-    """.format(','.join('?' * len(siswa_ids)))
-    params = siswa_ids
+    """.format(','.join('?' * (1 if siswa_id else len(siswa_ids))))
+    params = [siswa_id] if siswa_id else siswa_ids
     
     # Add date range filters
     if start_date:
@@ -675,8 +589,7 @@ async def get_rekapan_siswa_orangtua(
     cursor.execute(query, params)
     rekapan_list = cursor.fetchall()
     if not rekapan_list:
-        logger.info(f"No rekapan found for orang_tua_id: {orang_tua_id} with applied filters: "
-                    f"start_date={start_date}, end_date={end_date}, mata_pelajaran_id={mata_pelajaran_id}")
+        logger.info(f"No rekapan found for orang_tua_id: {orang_tua_id} with applied filters")
         return []
     
     # Prepare response with enriched data
