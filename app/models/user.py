@@ -10,4 +10,5 @@ class User(Base):
     username = Column(String, unique=True, nullable=False, index=True)
     password = Column(String, nullable=False)
     role = Column(Enum("guru", "orang_tua", name="user_role"), nullable=False)
+    profile_picture = Column(String, nullable=True)
     created_at = Column(DateTime, default=func.now())

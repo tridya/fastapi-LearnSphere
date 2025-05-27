@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.schemas.jadwal import JadwalCreate, JadwalResponse
+from app.schemas.kelas import KelasResponse
 from app.dependencies import get_db_connection, get_current_user
 import sqlite3
 from typing import List
@@ -11,6 +12,27 @@ def normalize_time(time_str: str) -> str:
     if len(time_str) > 5 and time_str[5] == ':':
         return time_str[:5]
     return time_str
+
+@router.get("/guru/kelas", response_model=List[KelasResponse])
+async def get_kelas_by_guru(
+    db: sqlite3.Connection = Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user["role"] != "guru":
+        raise HTTPException(status_code=403, detail="Only teachers can access their classes")
+    
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM kelas WHERE wali_kelas_id = ?", (current_user["user_id"],))
+    kelas_list = cursor.fetchall()
+    
+    result = []
+    for kelas in kelas_list:
+        result.append({
+            "kelas_id": kelas[0],
+            "nama_kelas": kelas[1],
+            "wali_kelas_id": kelas[2]
+        })
+    return result
 
 @router.post("/", response_model=JadwalResponse)
 async def api_create_jadwal(

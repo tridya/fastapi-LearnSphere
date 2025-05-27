@@ -14,9 +14,10 @@ class UserInDB(UserBase):
     user_id: int
     password: str  # Hashed password
     created_at: datetime
+    profile_picture: Optional[str] = None
 
     class Config:
-        from_attributes = True  # Diubah ke from_attributes
+        from_attributes = True # Diubah ke from_attributes
 
 class UserLogin(BaseModel):
     username: str
