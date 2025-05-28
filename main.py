@@ -40,7 +40,7 @@ templates = Jinja2Templates(directory="templates")
 # Add root route to display HTML page
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("landingpage.html", {"request": request})
 
 # Initialize database on startup
 @app.on_event("startup")
