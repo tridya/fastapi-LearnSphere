@@ -2,7 +2,7 @@ import sqlite3
 from app.utils.security import hash_password
 
 def get_db():
-    conn = sqlite3.connect("school.db", check_same_thread=False)
+    conn = sqlite3.connect("app/data/school.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 

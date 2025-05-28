@@ -1,16 +1,50 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.schemas.jadwal import JadwalCreate, JadwalResponse
+from app.schemas.kelas import KelasResponse
 from app.dependencies import get_db_connection, get_current_user
 import sqlite3
 from typing import List
+from datetime import datetime
+import re
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/jadwal", tags=["jadwal"])
 
-# Fungsi untuk menormalkan format waktu ke HH:MM
+# Fungsi untuk menormalkan dan memvalidasi format waktu ke HH:MM
 def normalize_time(time_str: str) -> str:
-    if len(time_str) > 5 and time_str[5] == ':':
-        return time_str[:5]
+    time_str = time_str.strip()
+    if not re.match(r"^\d{2}:\d{2}$", time_str):
+        raise HTTPException(status_code=400, detail="Invalid time format. Use HH:MM")
+    try:
+        datetime.strptime(time_str, "%H:%M")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid time value")
     return time_str
+
+@router.get("/guru/kelas", response_model=List[KelasResponse])
+async def get_kelas_by_guru(
+    db: sqlite3.Connection = Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user["role"] != "guru":
+        raise HTTPException(status_code=403, detail="Only teachers can access their classes")
+    
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM kelas WHERE wali_kelas_id = ?", (current_user["user_id"],))
+    kelas_list = cursor.fetchall()
+    
+    return [
+        {
+            "kelas_id": kelas[0],
+            "nama_kelas": kelas[1],
+            "wali_kelas_id": kelas[2]
+        }
+        for kelas in kelas_list
+    ]
 
 @router.post("/", response_model=JadwalResponse)
 async def api_create_jadwal(
@@ -175,12 +209,14 @@ async def get_current_jadwal_by_kelas(
     db: sqlite3.Connection = Depends(get_db_connection),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user["role"] != "guru":
+        raise HTTPException(status_code=403, detail="Only teachers can access class schedules")
+    
     cursor = db.cursor()
     cursor.execute("SELECT * FROM kelas WHERE kelas_id = ? AND wali_kelas_id = ?", (kelas_id, current_user["user_id"]))
     if not cursor.fetchone():
         raise HTTPException(status_code=403, detail="Kelas not found or you are not the class teacher")
     
-    from datetime import datetime
     current_time = datetime.now()
     current_day = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][current_time.weekday()]
     current_time_str = current_time.strftime("%H:%M")
@@ -193,6 +229,7 @@ async def get_current_jadwal_by_kelas(
         (kelas_id, current_day, current_time_str, current_time_str)
     )
     jadwal_list = cursor.fetchall()
+    logger.info(f"Jadwal found for kelas_id={kelas_id}, hari={current_day}: {jadwal_list}")
     
     result = []
     for jadwal in jadwal_list:
@@ -233,6 +270,9 @@ async def get_all_jadwal_by_kelas(
     db: sqlite3.Connection = Depends(get_db_connection),
     current_user: dict = Depends(get_current_user)
 ):
+    if current_user["role"] != "guru":
+        raise HTTPException(status_code=403, detail="Only teachers can access class schedules")
+    
     cursor = db.cursor()
     cursor.execute("SELECT * FROM kelas WHERE kelas_id = ? AND wali_kelas_id = ?", (kelas_id, current_user["user_id"]))
     if not cursor.fetchone():
@@ -240,6 +280,131 @@ async def get_all_jadwal_by_kelas(
     
     cursor.execute("SELECT * FROM jadwal WHERE kelas_id = ?", (kelas_id,))
     jadwal_list = cursor.fetchall()
+    logger.info(f"All jadwal found for kelas_id={kelas_id}: {jadwal_list}")
+    
+    result = []
+    for jadwal in jadwal_list:
+        cursor.execute("SELECT * FROM mata_pelajaran WHERE mata_pelajaran_id = ?", (jadwal[5],))
+        mata_pelajaran = cursor.fetchone()
+        
+        cursor.execute("SELECT * FROM kelas WHERE kelas_id = ?", (jadwal[1],))
+        kelas = cursor.fetchone()
+        
+        cursor.execute("SELECT * FROM users WHERE user_id = ?", (kelas[2],))
+        wali_kelas = cursor.fetchone()
+        
+        result.append({
+            "jadwal_id": jadwal[0],
+            "kelas_id": jadwal[1],
+            "hari": jadwal[2],
+            "jam_mulai": jadwal[3],
+            "jam_selesai": jadwal[4],
+            "mata_pelajaran_id": jadwal[5],
+            "mata_pelajaran": {
+                "mata_pelajaran_id": mata_pelajaran[0],
+                "nama": mata_pelajaran[1],
+                "kode": mata_pelajaran[2],
+                "deskripsi": mata_pelajaran[3]
+            } if mata_pelajaran else None,
+            "wali_kelas": {
+                "user_id": wali_kelas[0],
+                "nama": wali_kelas[1],
+                "username": wali_kelas[2],
+                "role": wali_kelas[3]
+            } if wali_kelas else None
+        })
+    return result
+
+@router.get("/orangtua/siswa/{siswa_id}", response_model=List[JadwalResponse])
+async def get_jadwal_by_siswa(
+    siswa_id: int,
+    db: sqlite3.Connection = Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user["role"] != "orang_tua":
+        raise HTTPException(status_code=403, detail="Only parents can access their child's schedule")
+    
+    cursor = db.cursor()
+    cursor.execute(
+        "SELECT * FROM siswa WHERE siswa_id = ? AND orang_tua_id = ?",
+        (siswa_id, current_user["user_id"])
+    )
+    siswa = cursor.fetchone()
+    if not siswa:
+        logger.warning(f"Siswa not found for siswa_id={siswa_id}, orang_tua_id={current_user['user_id']}")
+        raise HTTPException(status_code=404, detail="Siswa not found or not associated with this parent")
+    
+    kelas_id = siswa[2]
+    cursor.execute("SELECT * FROM jadwal WHERE kelas_id = ?", (kelas_id,))
+    jadwal_list = cursor.fetchall()
+    logger.info(f"Jadwal found for siswa_id={siswa_id}, kelas_id={kelas_id}: {jadwal_list}")
+    
+    result = []
+    for jadwal in jadwal_list:
+        cursor.execute("SELECT * FROM mata_pelajaran WHERE mata_pelajaran_id = ?", (jadwal[5],))
+        mata_pelajaran = cursor.fetchone()
+        
+        cursor.execute("SELECT * FROM kelas WHERE kelas_id = ?", (jadwal[1],))
+        kelas = cursor.fetchone()
+        
+        cursor.execute("SELECT * FROM users WHERE user_id = ?", (kelas[2],))
+        wali_kelas = cursor.fetchone()
+        
+        result.append({
+            "jadwal_id": jadwal[0],
+            "kelas_id": jadwal[1],
+            "hari": jadwal[2],
+            "jam_mulai": jadwal[3],
+            "jam_selesai": jadwal[4],
+            "mata_pelajaran_id": jadwal[5],
+            "mata_pelajaran": {
+                "mata_pelajaran_id": mata_pelajaran[0],
+                "nama": mata_pelajaran[1],
+                "kode": mata_pelajaran[2],
+                "deskripsi": mata_pelajaran[3]
+            } if mata_pelajaran else None,
+            "wali_kelas": {
+                "user_id": wali_kelas[0],
+                "nama": wali_kelas[1],
+                "username": wali_kelas[2],
+                "role": wali_kelas[3]
+            } if wali_kelas else None
+        })
+    return result
+
+@router.get("/orangtua/siswa/{siswa_id}/current", response_model=List[JadwalResponse])
+async def get_current_jadwal_by_siswa(
+    siswa_id: int,
+    db: sqlite3.Connection = Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user["role"] != "orang_tua":
+        raise HTTPException(status_code=403, detail="Only parents can access their child's schedule")
+    
+    cursor = db.cursor()
+    cursor.execute(
+        "SELECT * FROM siswa WHERE siswa_id = ? AND orang_tua_id = ?",
+        (siswa_id, current_user["user_id"])
+    )
+    siswa = cursor.fetchone()
+    if not siswa:
+        logger.warning(f"Siswa not found for siswa_id={siswa_id}, orang_tua_id={current_user['user_id']}")
+        raise HTTPException(status_code=404, detail="Siswa not found or not associated with this parent")
+    
+    kelas_id = siswa[2]
+    current_time = datetime.now()
+    current_day = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"][current_time.weekday()]
+    current_time_str = current_time.strftime("%H:%M")
+    
+    cursor.execute(
+        """
+        SELECT * FROM jadwal
+        WHERE kelas_id = ? AND hari = ? AND jam_mulai <= ? AND jam_selesai >= ?
+        """,
+        (kelas_id, current_day, current_time_str, current_time_str)
+    )
+    jadwal_list = cursor.fetchall()
+    logger.info(f"Current jadwal found for siswa_id={siswa_id}, kelas_id={kelas_id}, hari={current_day}: {jadwal_list}")
     
     result = []
     for jadwal in jadwal_list:

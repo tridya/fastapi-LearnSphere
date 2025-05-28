@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
+from app.schemas.siswa import SiswaCreate, SiswaResponse
 from app.dependencies import get_db_connection, get_current_user
 import sqlite3
 from typing import List
@@ -27,7 +29,6 @@ async def get_siswa_by_kelas(
         raise HTTPException(status_code=403, detail="Hanya guru yang dapat mengakses data siswa")
     
     cursor = db.cursor()
-    # Pastikan user adalah wali kelas dari kelas tersebut
     cursor.execute(
         "SELECT * FROM kelas WHERE kelas_id = ? AND wali_kelas_id = ?",
         (kelas_id, current_user["user_id"])

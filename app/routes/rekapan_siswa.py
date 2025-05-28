@@ -384,26 +384,24 @@ async def get_mata_pelajaran_list(
     cursor = db.cursor()
     
     if current_user["role"] == "orang_tua":
-        # Fetch orang_tua_id for the user
+        # Verify parent role in users table
         cursor.execute(
-            "SELECT orang_tua_id FROM orang_tua WHERE user_id = ?",
+            "SELECT user_id FROM users WHERE user_id = ? AND role = 'orang_tua'",
             (current_user["user_id"],)
         )
-        orang_tua = cursor.fetchone()
-        if not orang_tua:
-            logger.error(f"No orang_tua record found for user_id: {current_user['user_id']}")
+        user = cursor.fetchone()
+        if not user:
+            logger.error(f"No parent record found for user_id: {current_user['user_id']}")
             raise HTTPException(status_code=404, detail="Akun orang tua tidak ditemukan")
         
-        orang_tua_id = orang_tua[0]
-        
-        # Fetch kelas_id of the student's class
+        # Fetch kelas_id of the student's class using user_id as orang_tua_id
         cursor.execute(
             "SELECT DISTINCT kelas_id FROM siswa WHERE orang_tua_id = ?",
-            (orang_tua_id,)
+            (current_user["user_id"],)
         )
         kelas_list = cursor.fetchall()
         if not kelas_list:
-            logger.info(f"No students found for orang_tua_id: {orang_tua_id}")
+            logger.info(f"No students found for user_id: {current_user['user_id']}")
             return []
         
         kelas_ids = [kelas[0] for kelas in kelas_list]
@@ -464,18 +462,19 @@ async def delete_rekapan_siswa(
 
 # --- Parent Endpoints ---
 
-@router.get("/siswa", response_model=List[SiswaResponse])
-async def get_siswa_orangtua(
+@router.get("/siswa/{siswa_id}", response_model=SiswaResponse)
+async def get_siswa_by_id(
+    siswa_id: int,
     db: sqlite3.Connection = Depends(get_db_connection),
     current_user: dict = Depends(get_current_user)
 ):
-    logger.debug(f"Received GET request to /api/rekapan-siswa/siswa for user {current_user['user_id']}")
+    logger.debug(f"Received GET request to /api/rekapan-siswa/{siswa_id} for user {current_user['user_id']}")
     if current_user["role"] != "orang_tua":
         logger.error(f"Access denied for user {current_user['user_id']}: not an orang_tua")
         raise HTTPException(status_code=403, detail="Hanya orang tua yang dapat mengakses data siswa")
     
     cursor = db.cursor()
-    # Verify that the user is a parent
+    # Verifikasi bahwa user adalah orang tua
     cursor.execute(
         "SELECT user_id FROM users WHERE user_id = ? AND role = 'orang_tua'",
         (current_user["user_id"],)
@@ -486,12 +485,63 @@ async def get_siswa_orangtua(
         raise HTTPException(status_code=404, detail="Akun orang tua tidak ditemukan")
     
     orang_tua_id = parent[0]
-    # Fetch students linked to the orang_tua_id
+    # Ambil data siswa berdasarkan siswa_id dan orang_tua_id
     cursor.execute(
         """
-        SELECT siswa_id, nama, kelas_id, orang_tua_id, kode_siswa 
-        FROM siswa 
-        WHERE orang_tua_id = ?
+        SELECT s.siswa_id, s.nama, s.kelas_id, s.orang_tua_id, s.kode_siswa, k.nama_kelas
+        FROM siswa s
+        LEFT JOIN kelas k ON s.kelas_id = k.kelas_id
+        WHERE s.siswa_id = ? AND s.orang_tua_id = ?
+        """,
+        (siswa_id, orang_tua_id)
+    )
+    siswa = cursor.fetchone()
+    
+    if not siswa:
+        logger.error(f"No student found for siswa_id: {siswa_id} and orang_tua_id: {orang_tua_id}")
+        raise HTTPException(status_code=403, detail="Siswa tidak terkait dengan akun orang tua")
+    
+    logger.info(f"Found student siswa_id={siswa_id} for orang_tua_id={orang_tua_id}")
+    return SiswaResponse(
+        siswa_id=siswa[0],
+        nama=siswa[1],  # Gunakan nama sesuai skema
+        kelas_id=siswa[2],
+        orang_tua_id=siswa[3],
+        kode_siswa=siswa[4],
+        nama_kelas=siswa[5]
+    )
+
+# Endpoint lain tetap sama, termasuk /siswa, /daily/, dll.
+# Contoh: endpoint /siswa yang sudah ada
+@router.get("/siswa", response_model=List[SiswaResponse])
+async def get_siswa_orang_tua(
+    db: sqlite3.Connection = Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user)
+):
+    logger.debug(f"Received GET request to /api/rekapan-siswa/siswa for user {current_user['user_id']}")
+    if current_user["role"] != "orang_tua":
+        logger.error(f"Access denied for user {current_user['user_id']}: not an orang_tua")
+        raise HTTPException(status_code=403, detail="Hanya orang tua yang dapat mengakses data siswa")
+    
+    cursor = db.cursor()
+    cursor.execute(
+        """
+        SELECT user_id FROM users WHERE user_id = ? AND role = 'orang_tua'?",
+        (current_user["user_id"],)
+        """
+    )
+    parent = cursor.fetchone()
+    if not parent:
+        logger.error(f"No parent record found for user_id: {current_user['user_id']}")
+        raise HTTPException(status_code=404, detail="Akun orang tua tidak ditemukan")
+    
+    orang_tua_id = parent[0]
+    cursor.execute(
+        """
+        SELECT s.siswa_id, s.nama, s.kelas_id, s.orang_tua_id, s.kode_siswa, k.nama_kelas
+        FROM siswa s
+        LEFT JOIN kelas k ON s.kelas_id = k.kelas_id
+        WHERE s.orang_tua_id = ?
         """,
         (orang_tua_id,)
     )
@@ -505,13 +555,121 @@ async def get_siswa_orangtua(
     return [
         SiswaResponse(
             siswa_id=row[0],
-            nama=row[1],
+            nama=row[1],  # Diperbaiki: gunakan nama
             kelas_id=row[2],
             orang_tua_id=row[3],
-            kode_siswa=row[4]
+            kode_siswa=row[4],
+            nama_kelas=row[5]
         )
         for row in siswa_list
     ]
+
+@router.get("/siswa/{siswa_id}", response_model=SiswaResponse)
+async def get_rekapan_siswa_by_siswa_id(
+    siswa_id: int,
+    start_date: Optional[date] = Query(None, description="Start date for filtering (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date for filtering (YYYY-MM-DD)"),
+    mata_pelajaran_id: Optional[int] = Query(None, description="Filter by subject ID"),
+    db: sqlite3.Connection = Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user)
+):
+    logger.debug(f"Received GET request to /api/rekapan-siswa/orangtua/{siswa_id} for user {current_user['user_id']} "
+                 f"with filters: start_date={start_date}, end_date={end_date}, mata_pelajaran_id={mata_pelajaran_id}")
+    
+    if current_user["role"] != "orang_tua":
+        logger.error(f"Access denied for user {current_user['user_id']}: not an orang_tua")
+        raise HTTPException(status_code=403, detail="Hanya orang tua yang dapat mengakses rekapan")
+    
+    cursor = db.cursor()
+    
+    # Verify that the user is a parent
+    cursor.execute(
+        "SELECT user_id FROM users WHERE user_id = ? AND role = 'orang_tua'",
+        (current_user["user_id"],)
+    )
+    parent = cursor.fetchone()
+    if not parent:
+        logger.error(f"No parent record found for user_id: {current_user['user_id']}")
+        raise HTTPException(status_code=404, detail="Akun orang tua tidak ditemukan")
+    
+    orang_tua_id = parent[0]
+    
+    # Validate that the siswa_id is linked to the orang_tua_id
+    cursor.execute(
+        """
+        SELECT siswa_id, nama FROM siswa WHERE siswa_id = ? AND orang_tua_id = ?
+        """,
+        (siswa_id, orang_tua_id)
+    )
+    siswa = cursor.fetchone()
+    if not siswa:
+        logger.error(f"Siswa_id {siswa_id} not linked to orang_tua_id {orang_tua_id}")
+        raise HTTPException(status_code=403, detail="Siswa tidak terkait dengan akun orang tua")
+    
+    siswa_nama = siswa[1]
+    
+    # Build the query for rekapan_siswa with optional filters
+    query = """
+        SELECT rs.report_id, rs.siswa_id, rs.guru_id, rs.mata_pelajaran_id, rs.tanggal, 
+               rs.rating, rs.catatan
+        FROM rekapan_siswa rs
+        WHERE rs.siswa_id = ?
+    """
+    params = [siswa_id]
+    
+    # Add date range filters
+    if start_date:
+        query += " AND DATE(rs.tanggal) >= ?"
+        params.append(start_date)
+    if end_date:
+        query += " AND DATE(rs.tanggal) <= ?"
+        params.append(end_date)
+    if mata_pelajaran_id:
+        query += " AND rs.mata_pelajaran_id = ?"
+        params.append(mata_pelajaran_id)
+    
+    query += " ORDER BY rs.tanggal DESC"
+    
+    # Execute the query
+    cursor.execute(query, params)
+    rekapan_list = cursor.fetchall()
+    if not rekapan_list:
+        logger.info(f"No rekapan found for siswa_id: {siswa_id} with applied filters")
+        return []
+    
+    # Prepare response with enriched data
+    result = []
+    for rekapan in rekapan_list:
+        # Fetch mata pelajaran details
+        cursor.execute(
+            """
+            SELECT mata_pelajaran_id, nama, kode, deskripsi 
+            FROM mata_pelajaran 
+            WHERE mata_pelajaran_id = ?
+            """,
+            (rekapan[3],)
+        )
+        mata_pelajaran = cursor.fetchone()
+        
+        result.append(RekapanSiswaResponse(
+            report_id=rekapan[0],
+            siswa_id=rekapan[1],
+            guru_id=rekapan[2],
+            mata_pelajaran_id=rekapan[3],
+            rating=rekapan[5],
+            catatan=rekapan[6],
+            tanggal=rekapan[4],
+            siswa_nama=siswa_nama,
+            mata_pelajaran=MataPelajaranResponse(
+                mata_pelajaran_id=mata_pelajaran[0],
+                nama=mata_pelajaran[1],
+                kode=mata_pelajaran[2],
+                deskripsi=mata_pelajaran[3]
+            ) if mata_pelajaran else None
+        ))
+    
+    logger.info(f"Found {len(result)} rekapan for siswa_id: {siswa_id}")
+    return result
 
 @router.get("/rekapan", response_model=List[RekapanSiswaResponse])
 async def get_rekapan_siswa_orangtua(
@@ -624,4 +782,131 @@ async def get_rekapan_siswa_orangtua(
         ))
     
     logger.info(f"Found {len(result)} rekapan for orang_tua_id: {orang_tua_id}")
+    return result
+
+
+@router.get("/orangtua/{siswa_id}/jadwal", response_model=List[JadwalResponse])
+async def get_jadwal_siswa_orangtua(
+    siswa_id: int,
+    hari: Optional[str] = Query(None, description="Day of the week (e.g., Senin, Selasa)"),
+    db: sqlite3.Connection = Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user)
+):
+    logger.debug(f"Received GET request to /api/rekapan-siswa/orangtua/{siswa_id}/jadwal for user {current_user['user_id']} "
+                 f"with hari: {hari}")
+    
+    if current_user["role"] != "orang_tua":
+        logger.error(f"Access denied for user {current_user['user_id']}: not an orang_tua")
+        raise HTTPException(status_code=403, detail="Hanya orang tua yang dapat mengakses jadwal")
+    
+    cursor = db.cursor()
+    
+    # Verify that the user is a parent
+    cursor.execute(
+        "SELECT user_id FROM users WHERE user_id = ? AND role = 'orang_tua'",
+        (current_user["user_id"],)
+    )
+    parent = cursor.fetchone()
+    if not parent:
+        logger.error(f"No parent record found for user_id: {current_user['user_id']}")
+        raise HTTPException(status_code=404, detail="Akun orang tua tidak ditemukan")
+    
+    orang_tua_id = parent[0]
+    
+    # Validate that the siswa_id is linked to the orang_tua_id and get kelas_id
+    cursor.execute(
+        """
+        SELECT s.siswa_id, s.nama, s.kelas_id, k.nama_kelas
+        FROM siswa s
+        LEFT JOIN kelas k ON s.kelas_id = k.kelas_id
+        WHERE s.siswa_id = ? AND s.orang_tua_id = ?
+        """,
+        (siswa_id, orang_tua_id)
+    )
+    siswa = cursor.fetchone()
+    if not siswa:
+        logger.error(f"Siswa_id {siswa_id} not linked to orang_tua_id {orang_tua_id}")
+        raise HTTPException(status_code=403, detail="Siswa tidak terkait dengan akun orang tua")
+    
+    kelas_id = siswa[2]
+    if not kelas_id:
+        logger.info(f"No kelas assigned to siswa_id: {siswa_id}")
+        return []
+
+    # Build query for jadwal
+    query = "SELECT j.* FROM jadwal j WHERE j.kelas_id = ?"
+    params = [kelas_id]
+    
+    if hari:
+        # Validate hari
+        valid_hari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"]
+        if hari not in valid_hari:
+            logger.error(f"Invalid hari: {hari}")
+            raise HTTPException(status_code=400, detail="Hari tidak valid. Gunakan: Senin, Selasa, Rabu, Kamis, Jumat, Sabtu")
+        query += " AND j.hari = ?"
+        params.append(hari)
+    
+    # Fetch jadwal
+    cursor.execute(query, params)
+    jadwal_list = cursor.fetchall()
+    logger.info(f"Found {len(jadwal_list)} jadwal for kelas_id: {kelas_id}, hari: {hari}")
+
+    if not jadwal_list:
+        return []
+
+    # Prepare response with enriched data
+    result = []
+    for jadwal in jadwal_list:
+        # Fetch mata pelajaran details
+        cursor.execute(
+            """
+            SELECT mata_pelajaran_id, nama, kode, deskripsi 
+            FROM mata_pelajaran 
+            WHERE mata_pelajaran_id = ?
+            """,
+            (jadwal[2],)
+        )
+        mata_pelajaran = cursor.fetchone()
+        if not mata_pelajaran:
+            logger.error(f"Mata pelajaran not found for mata_pelajaran_id: {jadwal[2]}")
+            continue
+
+        # Fetch wali kelas details
+        cursor.execute(
+            """
+            SELECT user_id, nama, username, role, password, created_at 
+            FROM users 
+            WHERE user_id = (SELECT wali_kelas_id FROM kelas WHERE kelas_id = ?)
+            """,
+            (kelas_id,)
+        )
+        wali_kelas = cursor.fetchone()
+        if not wali_kelas:
+            logger.error(f"Wali kelas not found for kelas_id: {kelas_id}")
+            continue
+
+        result.append(JadwalResponse(
+            jadwal_id=jadwal[0],
+            kelas_id=jadwal[1],
+            hari=jadwal[3],
+            jam_mulai=str(jadwal[4]),
+            jam_selesai=str(jadwal[5]),
+            mata_pelajaran_id=jadwal[2],
+            mata_pelajaran=MataPelajaranResponse(
+                mata_pelajaran_id=mata_pelajaran[0],
+                nama=mata_pelajaran[1],
+                kode=mata_pelajaran[2],
+                deskripsi=mata_pelajaran[3]
+            ),
+            wali_kelas=UserInDB(
+                user_id=wali_kelas[0],
+                nama=wali_kelas[1],
+                username=wali_kelas[2],
+                role=wali_kelas[3],
+                password=wali_kelas[4],
+                created_at=str(wali_kelas[5])
+            )
+        ))
+
+    logger.info(f"Returning {len(result)} jadwal for siswa_id: {siswa_id}, kelas_id: {kelas_id}, hari: {hari}")
     return result
