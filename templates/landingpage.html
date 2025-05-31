@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnSphere - Solusi Pendidikan Digital</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      scroll-behavior: smooth;
+    }
+    .hero-bg {
+      background: linear-gradient(to bottom, #003c78, #005b99);
+      background-size: cover;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-bg::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      animation: shine 5s infinite;
+    }
+    @keyframes shine {
+      0% { left: -100%; }
+      20% { left: 100%; }
+      100% { left: 100%; }
+    }
+    .card-hover {
+      transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0, 60, 120, 0.3);
+    }
+    .feature-bg {
+      background: linear-gradient(to bottom right, #e6f0fa, #d1e8ff);
+    }
+    .menu-btn {
+      display: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    @media (max-width: 768px) {
+      .menu-btn {
+        display: block;
+      }
+      nav {
+        display: none;
+        position: absolute;
+        top: 60px;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      nav.active {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <!-- Header -->
+  <header class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div class="text-xl font-bold text-blue-700">LearnSphere</div>
+    <div class="flex items-center">
+      <div class="menu-btn text-blue-600 md:hidden">
+        <i class="fas fa-bars"></i>
+      </div>
+      <nav class="space-x-6 md:flex">
+        <a href="#beranda" class="text-blue-600 hover:text-blue-800">Beranda</a>
+        <a href="#tentang" class="text-blue-600 hover:text-blue-800">Tentang</a>
+        <a href="#fitur" class="text-blue-600 hover:text-blue-800">Fitur</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section id="beranda" class="hero-bg text-white py-24">
+    <div class="container mx-auto px-6 text-center relative z-10">
+      <h1 class="text-5xl md:text-6xl font-bold mb-6">Jangan Berhenti Mendampingi</h1>
+      <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed">Tingkatkan pendidikan anak dengan LearnSphere untuk guru dan orang tua.</p>
+      <p class="text-md mb-10">LearnSphere membantu mengelola pendidikan digital dengan mudah dan efisien.</p>
+      <a href="#" class="text-white border border-white px-6 py-3 rounded-lg hover:bg-blue-800 transition">Lihat Panduan</a>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="py-16 bg-blue-50">
+    <div class="container mx-auto px-6 text-center grid grid-cols-1 md:grid-cols-4 gap-10">
+      <div class="p-6 bg-white rounded-lg shadow-md">
+        <div class="text-4xl font-bold text-blue-600">10K+</div>
+        <p class="text-gray-600">Pengguna Aktif</p>
+      </div>
+      <div class="p-6 bg-white rounded-lg shadow-md">
+        <div class="text-4xl font-bold text-blue-600">5K+</div>
+        <p class="text-gray-600">Guru Terdaftar</p>
+      </div>
+      <div class="p-6 bg-white rounded-lg shadow-md">
+        <div class="text-4xl font-bold text-blue-600">15K+</div>
+        <p class="text-gray-600">Orang Tua</p>
+      </div>
+      <div class="p-6 bg-white rounded-lg shadow-md">
+        <div class="text-4xl font-bold text-blue-600">50+</div>
+        <p class="text-gray-600">Sekolah</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="fitur" class="py-20 feature-bg">
+    <div class="container mx-auto px-6 text-center">
+      <h2 class="text-4xl md:text-5xl font-bold mb-12 text-blue-800">Fitur Unggulan LearnSphere</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div class="card-hover bg-white p-8 rounded-xl shadow-lg">
+          <div class="text-5xl text-blue-600 mb-6">📊</div>
+          <h3 class="text-2xl font-semibold mb-4 text-gray-800">Manajemen Absensi</h3>
+          <p class="text-gray-600 leading-relaxed">Catat dan pantau kehadiran siswa secara real-time.</p>
+          <a href="#" class="text-blue-600 hover:underline mt-4 inline-block">Lihat →</a>
+        </div>
+        <div class="card-hover bg-white p-8 rounded-xl shadow-lg">
+          <div class="text-5xl text-blue-600 mb-6">📅</div>
+          <h3 class="text-2xl font-semibold mb-4 text-gray-800">Jadwal Pelajaran</h3>
+          <p class="text-gray-600 leading-relaxed">Atur dan akses jadwal harian dengan mudah.</p>
+          <a href="#" class="text-blue-600 hover:underline mt-4 inline-block">Lihat →</a>
+        </div>
+        <div class="card-hover bg-white p-8 rounded-xl shadow-lg">
+          <div class="text-5xl text-blue-600 mb-6">👩‍🎓</div>
+          <h3 class="text-2xl font-semibold mb-4 text-gray-800">Manajemen Siswa</h3>
+          <p class="text-gray-600 leading-relaxed">Kelola data siswa dalam platform terpusat.</p>
+          <a href="#" class="text-blue-600 hover:underline mt-4 inline-block">Lihat →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Popular Tools -->
+  <section class="py-20 bg-blue-50">
+    <div class="container mx-auto px-6 text-center">
+      <h2 class="text-4xl md:text-5xl font-bold mb-12 text-blue-800">Alat Populer Kami</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div class="card-hover bg-white p-8 rounded-xl shadow-lg">
+          <div class="text-5xl text-purple-600 mb-6">📋</div>
+          <h3 class="text-2xl font-semibold mb-4 text-gray-800">Laporan Absensi</h3>
+          <p class="text-gray-600 leading-relaxed">Laporan harian untuk kehadiran siswa.</p>
+          <a href="#" class="text-blue-600 hover:underline mt-4 inline-block">Lihat →</a>
+        </div>
+        <div class="card-hover bg-white p-8 rounded-xl shadow-lg">
+          <div class="text-5xl text-purple-600 mb-6">📅</div>
+          <h3 class="text-2xl font-semibold mb-4 text-gray-800">Pengingat Jadwal</h3>
+          <p class="text-gray-600 leading-relaxed">Notifikasi jadwal untuk guru dan orang tua.</p>
+          <a href="#" class="text-blue-600 hover:underline mt-4 inline-block">Lihat →</a>
+        </div>
+        <div class="card-hover bg-white p-8 rounded-xl shadow-lg">
+          <div class="text-5xl text-purple-600 mb-6">📧</div>
+          <h3 class="text-2xl font-semibold mb-4 text-gray-800">Pemberitahuan</h3>
+          <p class="text-gray-600 leading-relaxed">Update langsung ke orang tua.</p>
+          <a href="#" class="text-blue-600 hover:underline mt-4 inline-block">Lihat →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Us -->
+  <section id="tentang" class="py-20 bg-white">
+    <div class="container mx-auto px-6 text-center">
+      <h2 class="text-4xl md:text-5xl font-bold mb-8 text-blue-800">Tentang Kami</h2>
+      <p class="text-xl mb-10 max-w-3xl mx-auto leading-relaxed">LearnSphere adalah platform pendidikan digital yang dirancang untuk mendukung guru dan orang tua dalam mengelola pendidikan anak dengan lebih baik.</p>
+      <a href="#" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">Pelajari Lebih Lanjut</a>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="py-20 bg-blue-50">
+    <div class="container mx-auto px-6 text-center">
+      <h2 class="text-4xl md:text-5xl font-bold mb-12 text-blue-800">Apa Kata Pengguna Kami</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div class="card-hover bg-white p-8 rounded-xl shadow-lg">
+          <p class="text-gray-600 italic mb-6 leading-relaxed">"Sangat membantu memantau anak saya!"</p>
+          <p class="font-semibold text-blue-600">— Ibu Ani</p>
+        </div>
+        <div class="card-hover bg-white p-8 rounded-xl shadow-lg">
+          <p class="text-gray-600 italic mb-6 leading-relaxed">"Mengelola jadwal jadi lebih mudah."</p>
+          <p class="font-semibold text-blue-600">— Pak Budi</p>
+        </div>
+        <div class="card-hover bg-white p-8 rounded-xl shadow-lg">
+          <p class="text-gray-600 italic mb-6 leading-relaxed">"Aplikasi yang sangat praktis!"</p>
+          <p class="font-semibold text-blue-600">— Ibu Sari</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-blue-800 text-white py-10">
+    <div class="container mx-auto px-6 text-center">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div>
+          <h3 class="font-semibold mb-4">Hubungi</h3>
+          <p>LearnSphere</p>
+          <p>Jl. Pendidikan No. 1, Jakarta</p>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-4">Bantuan</h3>
+          <p>FAQ</p>
+          <p>Support</p>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-4">Komunitas</h3>
+          <p>Blog</p>
+          <p>Forum</p>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-4">Akses</h3>
+          <button id="menuToggle" class="flex items-center text-white hover:text-blue-300">
+            <i class="fas fa-bars mr-2"></i> Menu
+          </button>
+          <div id="accessMenu" class="hidden mt-2">
+            <a href="/login" class="block text-white hover:text-blue-300 py-1">Masuk</a>
+            <a href="/register" class="block text-white hover:text-blue-300 py-1">Daftar</a>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-center space-x-6 mb-6">
+        <a href="#" class="text-2xl text-white hover:text-blue-300"><i class="fab fa-facebook"></i></a>
+        <a href="#" class="text-2xl text-white hover:text-blue-300"><i class="fab fa-twitter"></i></a>
+        <a href="#" class="text-2xl text-white hover:text-blue-300"><i class="fab fa-instagram"></i></a>
+      </div>
+      <p class="text-sm">© 2025 LearnSphere. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Toggle menu for mobile and access options
+    document.addEventListener('DOMContentLoaded', function() {
+      const menuBtn = document.querySelector('.menu-btn');
+      const nav = document.querySelector('nav');
+      const menuToggle = document.getElementById('menuToggle');
+      const accessMenu = document.getElementById('accessMenu');
+
+      if (menuBtn && nav) {
+        menuBtn.addEventListener('click', function() {
+          nav.classList.toggle('active');
+        });
+      }
+
+      if (menuToggle && accessMenu) {
+        menuToggle.addEventListener('click', function() {
+          accessMenu.classList.toggle('hidden');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

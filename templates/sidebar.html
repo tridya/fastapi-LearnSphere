@@ -1,0 +1,32 @@
+<div class="sidebar">
+    <h2 class="text-center text-xl font-bold mb-4 text-white">LearnSphere</h2>
+    <a href="/dashboard" class="{% if request.path == '/dashboard' %}active{% endif %} block py-2 px-4 hover:bg-blue-700">Dashboard</a>
+    <a href="/dashboard/siswa" class="{% if request.path == '/dashboard/siswa' %}active{% endif %} block py-2 px-4 hover:bg-blue-700">Kelola Siswa</a>
+    <a href="/dashboard/jadwal" class="{% if request.path == '/dashboard/jadwal' %}active{% endif %} block py-2 px-4 hover:bg-blue-700">Kelola Jadwal</a>
+    <a href="/dashboard/mata-pelajaran" class="{% if request.path == '/dashboard/mata-pelajaran' %}active{% endif %} block py-2 px-4 hover:bg-blue-700">Kelola Mata Pelajaran</a>
+    <a href="/store/kelas" class="{% if request.path == '/store/kelas' %}active{% endif %} block py-2 px-4 hover:bg-blue-700">Kelola Kelas</a>
+    <a href="/logout" class="{% if request.path == '/logout' %}active{% endif %} block py-2 px-4 hover:bg-blue-700">Keluar</a>
+</div>
+<style>
+    .sidebar {
+        width: 250px;
+        height: 100vh;
+        background: linear-gradient(180deg, #003c78 0%, #005b99 100%);
+        color: white;
+        position: fixed;
+        padding-top: 20px;
+    }
+    .sidebar a {
+        color: white;
+        text-decoration: none;
+        display: block;
+        transition: background-color 0.3s;
+    }
+    .sidebar a:hover {
+        background-color: #0077b6;
+    }
+    .sidebar a.active {
+        background-color: #0077b6;
+        font-weight: 600;
+    }
+</style>

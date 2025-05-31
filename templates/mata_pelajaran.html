@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mata Pelajaran - LearnSphere</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #e6f0fa;
+            margin: 0;
+        }
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #003c78;
+            color: white;
+            position: fixed;
+            padding-top: 20px;
+        }
+        .sidebar a {
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #005b99;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: 600;
+        }
+        .btn {
+            background-color: #003c78;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 0 5px;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background-color: #005b99;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+        }
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        #edit-form {
+            display: none;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 0.375rem;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1, h3 {
+            color: #003c78;
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar.html' %}
+    <div class="content">
+        <header class="bg-white shadow-md p-4 flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">LearnSphere - Daftar Mata Pelajaran</h1>
+        </header>
+        <main>
+            <h3>Daftar Mata Pelajaran</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nama</th>
+                        <th>Kode</th>
+                        <th>Deskripsi</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mp in mata_pelajaran_list %}
+                    <tr>
+                        <td>{{ mp.mata_pelajaran_id }}</td>
+                        <td>{{ mp.nama }}</td>
+                        <td>{{ mp.kode }}</td>
+                        <td>{{ mp.deskripsi }}</td>
+                        <td class="action-buttons">
+                            <button onclick="showEditForm('{{ mp.mata_pelajaran_id }}', '{{ mp.nama }}', '{{ mp.kode }}', '{{ mp.deskripsi }}')" class="btn">Edit</button>
+                            <form action="/dashboard/mata-pelajaran/delete/{{ mp.mata_pelajaran_id }}" method="post">
+                                <button type="submit" class="btn btn-delete">Hapus</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <h3>Tambah Mata Pelajaran</h3>
+            <form action="/dashboard/mata-pelajaran/add" method="post" class="grid grid-cols-1 gap-4">
+                <div>
+                    <label for="nama" class="block font-medium text-gray-700">Nama:</label>
+                    <input type="text" id="nama" name="nama" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label for="kode" class="block font-medium text-gray-700">Kode:</label>
+                    <input type="text" id="kode" name="kode" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label for="deskripsi" class="block font-medium text-gray-700">Deskripsi:</label>
+                    <textarea id="deskripsi" name="deskripsi" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                </div>
+                <div>
+                    <input type="submit" value="Tambah Mata Pelajaran" class="btn">
+                </div>
+            </form>
+
+            <div id="edit-form">
+                <h3>Edit Mata Pelajaran</h3>
+                <form id="edit-mata-pelajaran-form" action="" method="post">
+                    <input type="hidden" id="edit-mata-pelajaran-id" name="mata_pelajaran_id">
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label for="edit-nama" class="block font-medium text-gray-700">Nama:</label>
+                            <input type="text" id="edit-nama" name="nama" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                        </div>
+                        <div>
+                            <label for="edit-kode" class="block font-medium text-gray-700">Kode:</label>
+                            <input type="text" id="edit-kode" name="kode" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                        </div>
+                        <div>
+                            <label for="edit-deskripsi" class="block font-medium text-gray-700">Deskripsi:</label>
+                            <textarea id="edit-deskripsi" name="deskripsi" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                        </div>
+                        <div class="flex justify-between">
+                            <input type="submit" value="Simpan Perubahan" class="btn">
+                            <button type="button" onclick="hideEditForm()" class="btn bg-gray-500 hover:bg-gray-600">Batal</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </main>
+        <footer class="text-center mt-6 text-gray-600">
+            <p>© 2025 LearnSphere. All rights reserved.</p>
+        </footer>
+    </div>
+    <script>
+        function showEditForm(mataPelajaranId, nama, kode, deskripsi) {
+            document.getElementById('edit-form').style.display = 'block';
+            document.getElementById('edit-mata-pelajaran-form').action = `/dashboard/mata-pelajaran/update/${mataPelajaranId}`;
+            document.getElementById('edit-mata-pelajaran-id').value = mataPelajaranId;
+            document.getElementById('edit-nama').value = nama;
+            document.getElementById('edit-kode').value = kode;
+            document.getElementById('edit-deskripsi').value = deskripsi;
+        }
+
+        function hideEditForm() {
+            document.getElementById('edit-form').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
