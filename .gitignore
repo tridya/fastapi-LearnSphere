@@ -14,3 +14,6 @@ app/schemas/__pycache__/siswa.cpython-313.pyc
 app/schemas/__pycache__/tugas.cpython-313.pyc
 app/schemas/__pycache__/user.cpython-313.pyc
 app/utils/__pycache__/security.cpython-313.pyc
+app/__pycache__/database.cpython-313.pyc
+app/__pycache__/dependencies.cpython-313.pyc
+__pycache__/main.cpython-313.pyc
