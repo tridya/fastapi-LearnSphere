@@ -1,0 +1,80 @@
+<!-- templates/mata_pelajaran.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mata Pelajaran - LearnSphere</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        form {
+            margin: 20px 0;
+        }
+        nav a {
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>LearnSphere - Daftar Mata Pelajaran</h1>
+        <nav>
+            <a href="/dashboard/siswa">Siswa</a> |
+            <a href="/dashboard/jadwal">Jadwal</a> |
+            <a href="/dashboard/mata-pelajaran">Mata Pelajaran</a> |
+            <a href="/register">Register</a> |
+            <a href="/login">Login</a>
+        </nav>
+    </header>
+    <main>
+        <h3>Daftar Mata Pelajaran</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nama</th>
+                    <th>Kode</th>
+                    <th>Deskripsi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mp in mata_pelajaran_list %}
+                <tr>
+                    <td>{{ mp.mata_pelajaran_id }}</td>
+                    <td>{{ mp.nama }}</td>
+                    <td>{{ mp.kode }}</td>
+                    <td>{{ mp.deskripsi }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Tambah Mata Pelajaran</h3>
+        <form action="/dashboard/mata-pelajaran/add" method="post">
+            <label for="nama">Nama:</label><br>
+            <input type="text" id="nama" name="nama" required><br><br>
+            <label for="kode">Kode:</label><br>
+            <input type="text" id="kode" name="kode"><br><br>
+            <label for="deskripsi">Deskripsi:</label><br>
+            <textarea id="deskripsi" name="deskripsi"></textarea><br><br>
+            <input type="submit" value="Tambah Mata Pelajaran">
+        </form>
+    </main>
+    <footer>
+        <p>© 2025 LearnSphere. All rights reserved.</p>
+    </footer>
+</body>
+</html>

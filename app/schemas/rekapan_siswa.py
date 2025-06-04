@@ -1,11 +1,12 @@
 from pydantic import BaseModel
-from typing import Literal, Optional
+from typing import Optional, Literal, List
 from datetime import datetime
+from .mata_pelajaran import MataPelajaranResponse
+from .user import UserInDB
 
 class RekapanSiswaCreate(BaseModel):
     siswa_id: int
-    guru_id: int
-    mata_pelajaran_id: int  # Diubah dari mata_pelajaran
+    mata_pelajaran_id: int
     rating: Literal["Sangat Baik", "Baik", "Cukup", "Kurang", "Buruk"]
     catatan: Optional[str] = None
 
@@ -13,10 +14,20 @@ class RekapanSiswaResponse(BaseModel):
     report_id: int
     siswa_id: int
     guru_id: int
-    mata_pelajaran_id: int  # Diubah dari mata_pelajaran
-    rating: Literal["Sangat Baik", "Baik", "Cukup", "Kurang", "Buruk"]
+    mata_pelajaran_id: int
+    rating: str
     catatan: Optional[str]
-    tanggal: datetime
+    tanggal: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class StatusRekapanSiswa(BaseModel):
+    siswa_id: int
+    nama_siswa: str
+    sudah_dibuat: bool
+    rekapan: Optional[RekapanSiswaResponse] = None
+
+class KelasResponse(BaseModel):
+    kelas_id: int
+    nama: str

@@ -8,7 +8,7 @@ from app.utils.security import verify_token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 def get_db_connection():
-    conn = sqlite3.connect("school.db", check_same_thread=False)
+    conn = sqlite3.connect("app/data/school.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row
     try:
         yield conn
