@@ -152,3 +152,65 @@ async def get_absensi_by_class_and_date(
     except Exception as e:
         logger.error(f"Error saat mengambil absensi: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+@router.get("/siswa/{siswa_id}", response_model=List[AbsensiResponse])
+async def get_absensi_by_student(
+    siswa_id: int,
+    start_date: str,
+    end_date: str,
+    db: sqlite3.Connection = Depends(get_db_connection),
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        logger.info(f"Memulai get_absensi_by_student untuk siswa_id: {siswa_id}, start_date: {start_date}, end_date: {end_date}, user: {current_user}")
+        
+        if current_user["role"] != "orang_tua":
+            logger.error("User bukan orang tua")
+            raise HTTPException(status_code=403, detail="Hanya orang tua yang dapat mengakses absensi anak")
+        
+        cursor = db.cursor()
+        # Pastikan siswa adalah anak dari orang tua yang login
+        logger.info(f"Memeriksa siswa dengan siswa_id: {siswa_id} dan orang_tua_id: {current_user['user_id']}")
+        cursor.execute("SELECT * FROM siswa WHERE siswa_id = ? AND orang_tua_id = ?", (siswa_id, current_user["user_id"]))
+        siswa = cursor.fetchone()
+        if not siswa:
+            logger.error(f"Siswa tidak ditemukan atau bukan anak dari user untuk siswa_id: {siswa_id}")
+            raise HTTPException(status_code=404, detail="Siswa tidak ditemukan atau Anda bukan orang tua dari siswa ini")
+        
+        # Validasi format tanggal
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+            start_date_str = start_date_obj.strftime("%Y-%m-%d")
+            end_date_str = end_date_obj.strftime("%Y-%m-%d")
+            logger.info(f"Tanggal dikonversi: start_date={start_date_str}, end_date={end_date_str}")
+        except ValueError as e:
+            logger.error(f"Format tanggal salah: start_date={start_date}, end_date={end_date}, error: {str(e)}")
+            raise HTTPException(status_code=400, detail="Format tanggal salah. Gunakan YYYY-MM-DD")
+        
+        # Ambil absensi untuk siswa tersebut dalam rentang tanggal
+        logger.info(f"Mengambil absensi untuk siswa_id: {siswa_id} dari {start_date_str} hingga {end_date_str}")
+        cursor.execute(
+            "SELECT * FROM absensi WHERE siswa_id = ? AND tanggal BETWEEN ? AND ?",
+            (siswa_id, start_date_str, end_date_str)
+        )
+        absensi_list = cursor.fetchall()
+        logger.info(f"Hasil query absensi: {absensi_list}")
+        
+        # Konversi hasil query ke format AbsensiResponse
+        absensi_response = [
+            {
+                "absensi_id": row[0],
+                "siswa_id": row[1],
+                "tanggal": row[2],
+                "status": row[3]
+            }
+            for row in absensi_list
+        ]
+        
+        logger.info(f"Absensi ditemukan: {len(absensi_response)} entri untuk siswa_id: {siswa_id}")
+        return absensi_response if absensi_response else []
+    
+    except Exception as e:
+        logger.error(f"Error saat mengambil absensi: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
