@@ -14,7 +14,7 @@ router = APIRouter(tags=["web"])
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, templates: Jinja2Templates = Depends(get_templates)):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("landingpage.html", {"request": request})
 
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request, message: str = None, templates: Jinja2Templates = Depends(get_templates)):
@@ -486,3 +486,18 @@ async def store_kelas(
     except Exception as e:
         logger.error(f"Error storing kelas: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error storing kelas: {str(e)}")
+
+@router.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_page(
+    request: Request,
+    db: sqlite3.Connection = Depends(get_db_connection),
+    templates: Jinja2Templates = Depends(get_templates)
+):
+    logger.info("Route /dashboard accessed successfully")
+    try:
+        return templates.TemplateResponse("dashboard.html", {"request": request})
+    except Exception as e:
+        logger.error(f"Error loading dashboard page: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error loading dashboard page: {str(e)}")
+    
+    
