@@ -6,41 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LearnSphere</title>
     <link rel="stylesheet" href="/static/css/styles.css">
-    <style>
-        /* Styling dari notifikasi */
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
-        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-top: 20px; }
-        h2 { text-align: center; color: #333; }
-        label { display: block; margin-top: 10px; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], textarea {
-            width: calc(100% - 22px);
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover { background-color: #0056b3; }
-        .result {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .result.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .result.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    </style>
 </head>
 <body>
-    <!-- Bagian LearnSphere -->
     <header>
         <h1>Welcome to LearnSphere</h1>
         <nav>
@@ -50,69 +17,9 @@
     </header>
     <main>
         <p>This is the main page of LearnSphere. Use the links above to register or log in.</p>
-        
-        <!-- Bagian Notifikasi -->
-        <div class="container">
-            <h2>Send FCM Notification</h2>
-            <form id="notificationForm">
-                <div>
-                    <label for="topic">Topic Name (e.g., test_topic):</label>
-                    <input type="text" id="topic" name="topic" value="test_topic" required>
-                </div>
-                <div>
-                    <label for="title">Notification Title:</label>
-                    <input type="text" id="title" name="title" value="Test Title from Backend" required>
-                </div>
-                <div>
-                    <label for="body">Notification Body:</label>
-                    <textarea id="body" name="body" rows="3" required>Hello from FastAPI Backend!</textarea>
-                </div>
-                <div>
-                    <label for="data_message">Optional Data Message (string):</label>
-                    <input type="text" id="data_message" name="data_message" placeholder="e.g., {'key':'value'} or simple string">
-                </div>
-                <button type="submit">Send Notification</button>
-            </form>
-            <div id="resultArea" class="result" style="display:none;"></div>
-        </div>
     </main>
     <footer>
-        <p>© 2025 LearnSphere. All rights reserved.</p>
+        <p>&copy; 2025 LearnSphere. All rights reserved.</p>
     </footer>
-
-    <!-- JavaScript dari notifikasi -->
-    <script>
-        document.getElementById('notificationForm').addEventListener('submit', async function(event) {
-            event.preventDefault(); // Prevent default form submission
-
-            const resultArea = document.getElementById('resultArea');
-            resultArea.style.display = 'none'; // Hide previous result
-
-            const formData = new FormData(this);
-
-            try {
-                const response = await fetch('/send-notification', {
-                    method: 'POST',
-                    body: formData // FastAPI will handle FormData with Form(...)
-                });
-
-                const result = await response.json(); // FastAPI returns JSON
-
-                resultArea.style.display = 'block';
-                if (response.ok) {
-                    resultArea.className = 'result success';
-                    resultArea.textContent = `Success: ${result.detail} (ID: ${result.message_id})`;
-                } else {
-                    resultArea.className = 'result error';
-                    resultArea.textContent = `Error: ${result.detail || 'Failed to send notification'}`;
-                }
-            } catch (error) {
-                resultArea.style.display = 'block';
-                resultArea.className = 'result error';
-                resultArea.textContent = `Network or client-side error: ${error.message}`;
-                console.error('Error sending notification:', error);
-            }
-        });
-    </script>
 </body>
 </html>

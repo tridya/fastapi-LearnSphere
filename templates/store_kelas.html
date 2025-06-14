@@ -1,45 +1,230 @@
-<!-- templates/store_kelas.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Store Kelas - LearnSphere</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Kelola Kelas - LearnSphere</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #e6f0fa;
+            margin: 0;
+        }
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #003c78;
+            color: white;
+            position: fixed;
+            padding-top: 20px;
+        }
+        .sidebar a {
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #005b99;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: 600;
+        }
+        form {
+            margin: 20px 0;
+            background-color: white;
+            padding: 15px;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .action-buttons form {
+            background: none;
+            padding: 0;
+            margin: 0;
+            box-shadow: none;
+            border: none;
+            display: inline;
+        }
+        label {
+            font-weight: 500;
+            color: #333;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 0.375rem;
+            margin-top: 4px;
+        }
+        .btn {
+            background-color: #003c78;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 0 5px;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background-color: #005b99;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+        }
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        #edit-form {
+            display: none;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 0.375rem;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1, h3 {
+            color: #003c78;
+        }
+        .no-data {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Store Kelas</h1>
-        <nav>
-            <a href="/dashboard/siswa">Siswa</a> |
-            <a href="/dashboard/jadwal">Jadwal</a> |
-            <a href="/dashboard/mata-pelajaran">Mata Pelajaran</a> |
-            <a href="/register">Register</a> |
-            <a href="/store/kelas">Store Kelas</a> |
-            <a href="/login">Login</a>
-        </nav>
-    </header>
-    <main>
-        {% if message %}
-            <p>{{ message }}</p>
-        {% endif %}
-        <form action="/store/kelas" method="post">
-            <label for="nama_kelas">Nama Kelas:</label><br>
-            <input type="text" id="nama_kelas" name="nama_kelas" required><br><br>
+    {% include 'sidebar.html' %}
+    <div class="content">
+        <header class="bg-white shadow-md p-4 flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">LearnSphere - Kelola Kelas</h1>
+        </header>
+        <main>
+            <h3>Daftar Kelas</h3>
+            {% if message %}
+                <p class="text-red-500 mb-4">{{ message }}</p>
+            {% endif %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nama Kelas</th>
+                        <th>Wali Kelas</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if kelas_list %}
+                        {% for kelas in kelas_list %}
+                        <tr>
+                            <td>{{ kelas.nama_kelas | default('Tidak Ada Nama') }}</td>
+                            <td>{{ kelas.wali_kelas_nama | default('Tidak Ada Wali Kelas') }}</td>
+                            <td class="action-buttons">
+                                <button onclick="showEditForm('{{ kelas.kelas_id }}', '{{ kelas.nama_kelas | e | default('') }}', '{{ kelas.wali_kelas_id | default('') }}')" class="btn">Edit</button>
+                                <form action="/store/kelas/delete/{{ kelas.kelas_id }}" method="post" onsubmit="return confirm('Yakin ingin menghapus kelas ini?');">
+                                    <button type="submit" class="btn btn-delete">Hapus</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="3" class="no-data">Belum ada kelas yang terdaftar.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
 
-            <label for="wali_kelas_id">Wali Kelas (Guru):</label><br>
-            <select id="wali_kelas_id" name="wali_kelas_id" required>
-                <option value="">Pilih Guru</option>
-                {% for guru in guru_list %}
-                <option value="{{ guru.user_id }}">{{ guru.nama }}</option>
-                {% endfor %}
-            </select><br><br>
+            <h3>Tambah Kelas</h3>
+            <form action="/store/kelas" method="post">
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label for="nama_kelas">Nama Kelas:</label>
+                        <input type="text" id="nama_kelas" name="nama_kelas" required>
+                    </div>
+                    <div>
+                        <label for="wali_kelas_id">Wali Kelas:</label>
+                        <select id="wali_kelas_id" name="wali_kelas_id" required>
+                            <option value="">Pilih Guru</option>
+                            {% for guru in guru_list %}
+                            <option value="{{ guru.user_id }}">{{ guru.nama }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <input type="submit" value="Tambah Kelas" class="btn">
+                    </div>
+                </div>
+            </form>
 
-            <input type="submit" value="Simpan Kelas">
-        </form>
-    </main>
-    <footer>
-        <p>© 2025 LearnSphere. All rights reserved.</p>
-    </footer>
+            <div id="edit-form">
+                <h3>Edit Kelas</h3>
+                <form id="edit-kelas-form" action="" method="post">
+                    <input type="hidden" id="edit-kelas-id" name="kelas_id">
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label for="edit-nama_kelas">Nama Kelas:</label>
+                            <input type="text" id="edit-nama_kelas" name="nama_kelas" required>
+                        </div>
+                        <div>
+                            <label for="edit-wali_kelas_id">Wali Kelas:</label>
+                            <select id="edit-wali_kelas_id" name="wali_kelas_id" required>
+                                <option value="">Pilih Guru</option>
+                                {% for guru in guru_list %}
+                                <option value="{{ guru.user_id }}">{{ guru.nama }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="flex justify-between">
+                            <input type="submit" value="Simpan Perubahan" class="btn">
+                            <button type="button" onclick="hideEditForm()" class="btn bg-gray-500 hover:bg-gray-600">Batal</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </main>
+        <footer class="text-center mt-6 text-gray-600">
+            <p>© 2025 LearnSphere. All rights reserved.</p>
+        </footer>
+    </div>
+    <script>
+        function showEditForm(kelasId, namaKelas, waliKelasId) {
+            document.getElementById('edit-form').style.display = 'block';
+            document.getElementById('edit-kelas-form').action = `/store/kelas/update/${kelasId}`;
+            document.getElementById('edit-kelas-id').value = kelasId;
+            document.getElementById('edit-nama_kelas').value = namaKelas;
+            document.getElementById('edit-wali_kelas_id').value = waliKelasId;
+        }
+
+        function hideEditForm() {
+            document.getElementById('edit-form').style.display = 'none';
+        }
+    </script>
 </body>
 </html>

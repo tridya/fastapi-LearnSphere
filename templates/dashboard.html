@@ -1,148 +1,105 @@
-<!-- templates/dashboard.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - LearnSphere</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Dashboard Admin - LearnSphere</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        table {
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e6f0fa 0%, #d0e2f0 100%);
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background: linear-gradient(180deg, #003c78 0%, #005b99 100%);
+            color: white;
+            position: fixed;
+            padding-top: 20px;
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar a {
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #0077b6;
+            color: #fff;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem; /* Meningkatkan padding untuk lebar lebih besar */
+            margin-bottom: 1.5rem;
+            max-width: 50rem; /* Meningkatkan lebar maksimum menjadi 800px */
+            margin-left: auto;
+            margin-right: auto;
             width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
+            animation: fadeIn 0.5s ease-in;
         }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        th {
-            background-color: #f2f2f2;
+        .btn {
+            background: linear-gradient(90deg, #003c78 0%, #005b99 100%);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
         }
-        form {
-            margin: 20px 0;
+        .btn:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(90deg, #005b99 0%, #0077b6 100%);
         }
-        nav a {
-            margin-right: 15px;
+        h1, h3 {
+            color: #003c78;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>LearnSphere Dashboard</h1>
-        <nav>
-            <a href="/dashboard">Dashboard</a> |
-            <a href="/register">Register</a> |
-            <a href="/login">Login</a> <!-- Changed Logout to Login since no auth required -->
-        </nav>
-    </header>
-    <main>
-        <h3>Daftar Siswa</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nama</th>
-                    <th>Kelas</th>
-                    <th>Kode Siswa</th>
-                    <th>Orang Tua ID</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for siswa in siswa_list %}
-                <tr>
-                    <td>{{ siswa.siswa_id }}</td>
-                    <td>{{ siswa.nama }}</td>
-                    <td>{{ siswa.nama_kelas }}</td>
-                    <td>{{ siswa.kode_siswa }}</td>
-                    <td>{{ siswa.orang_tua_id }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <h3>Tambah Siswa</h3>
-        <form action="/dashboard/add-siswa" method="post">
-            <label for="nama">Nama:</label><br>
-            <input type="text" id="nama" name="nama" required><br><br>
-            <label for="kelas_id">Kelas:</label><br>
-            <select id="kelas_id" name="kelas_id" required>
-                {% for kelas in kelas_list %}
-                <option value="{{ kelas.kelas_id }}">{{ kelas.nama_kelas }}</option>
-                {% endfor %}
-            </select><br><br>
-            <label for="orang_tua_id">Orang Tua:</label><br>
-            <select id="orang_tua_id" name="orang_tua_id">
-                <option value="">Tidak Ada</option>
-                {% for orang_tua in orang_tua_list %}
-                <option value="{{ orang_tua.user_id }}">{{ orang_tua.nama }}</option>
-                {% endfor %}
-            </select><br><br>
-            <label for="kode_siswa">Kode Siswa:</label><br>
-            <input type="text" id="kode_siswa" name="kode_siswa"><br><br>
-            <input type="submit" value="Tambah Siswa">
-        </form>
-
-        <h3>Jadwal Mata Pelajaran per Kelas</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Kelas</th>
-                    <th>Hari</th>
-                    <th>Jam Mulai</th>
-                    <th>Jam Selesai</th>
-                    <th>Mata Pelajaran</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for jadwal in kelas_jadwal %}
-                <tr>
-                    <td>{{ jadwal.nama_kelas }}</td>
-                    <td>{{ jadwal.hari }}</td>
-                    <td>{{ jadwal.jam_mulai }}</td>
-                    <td>{{ jadwal.jam_selesai }}</td>
-                    <td>{{ jadwal.mata_pelajaran }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <h3>Daftar Mata Pelajaran</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nama</th>
-                    <th>Kode</th>
-                    <th>Deskripsi</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for mp in mata_pelajaran_list %}
-                <tr>
-                    <td>{{ mp.mata_pelajaran_id }}</td>
-                    <td>{{ mp.nama }}</td>
-                    <td>{{ mp.kode }}</td>
-                    <td>{{ mp.deskripsi }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <h3>Tambah Mata Pelajaran</h3>
-        <form action="/dashboard/add-mata-pelajaran" method="post">
-            <label for="nama">Nama:</label><br>
-            <input type="text" id="nama" name="nama" required><br><br>
-            <label for="kode">Kode:</label><br>
-            <input type="text" id="kode" name="kode"><br><br>
-            <label for="deskripsi">Deskripsi:</label><br>
-            <textarea id="deskripsi" name="deskripsi"></textarea><br><br>
-            <input type="submit" value="Tambah Mata Pelajaran">
-        </form>
-    </main>
-    <footer>
-        <p>© 2025 LearnSphere. All rights reserved.</p>
-    </footer>
+    {% include 'sidebar.html' %}
+    <div class="content">
+        <header class="bg-white shadow-md p-4 flex justify-between items-center mb-6 rounded-lg">
+            <h1 class="text-2xl font-bold">LearnSphere - Dashboard Admin</h1>
+            <a href="/logout" class="btn"><i class="fas fa-sign-out-alt"></i> Keluar</a>
+        </header>
+        <main>
+            <div class="grid grid-cols-1 gap-2 mb-6"> <!-- Mengurangi gap dari gap-4 menjadi gap-2 -->
+                <div class="card">
+                    <h3 class="text-lg font-semibold mb-2"><i class="fas fa-user-shield"></i> Selamat Datang, Admin</h3>
+                    <p class="text-gray-700">Kelola Permintaan dan Data Pengguna dengan Mudah.</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-lg font-semibold mb-2"><i class="fas fa-users"></i> Pengguna</h3>
+                    <p class="text-gray-700"> Orang Tua dan Guru Adalah Pengguna Aplikasi LearnSphere untuk Kemajuan Perkembangan Siswa.</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-lg font-semibold mb-2"><i class="fas fa-key"></i> Permintaan Ganti Kata Sandi Pengguna</h3>
+                    <p class="text-gray-700">Atur Penggantian Kata Sandi Pengguna.</p>
+                    <a href="/password-requests" class="btn mt-4 inline-block"><i class="fas fa-key"></i> Lihat Permintaan Ganti Kata Sandi</a>
+                </div>
+            </div>
+        </main>
+        <footer class="text-center mt-6 text-gray-600">
+            <p>© 2025 LearnSphere. All rights reserved.</p>
+        </footer>
+    </div>
 </body>
 </html>
